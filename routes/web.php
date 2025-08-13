@@ -485,16 +485,18 @@ Route::get('/contenedor/{id}/lote', function ($id) {
 // Rutas para probar el modelo Movimientos
 Route::get('/movimientos', function () {
     try {
-        // Obtener movimientos con sus relaciones (lote, orden producto presentación y tipo)
+        // Obtener movimientos con todas sus relaciones (lote, orden producto presentación, tipo y ubicaciones)
         $movimientos = Movimientos::with([
             'movimientoTipo',
             'lote', 
-            'ordenProductoPresentacion.orden'
+            'ordenProductoPresentacion.orden',
+            'ubicacionOrigen.ubicacionTipo',
+            'ubicacionDestino.ubicacionTipo'
         ])->take(10)->get();
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Consulta exitosa a Movimientos con relaciones',
+            'message' => 'Consulta exitosa a Movimientos con todas las relaciones',
             'total' => Movimientos::count(),
             'datos' => $movimientos
         ]);
@@ -574,7 +576,9 @@ Route::get('/movimiento/{id}/completo', function ($id) {
         $movimiento = Movimientos::with([
             'movimientoTipo',
             'lote.contenedores',
-            'ordenProductoPresentacion.orden'
+            'ordenProductoPresentacion.orden',
+            'ubicacionOrigen.ubicacionTipo',
+            'ubicacionDestino.ubicacionTipo'
         ])->find($id);
         
         if (!$movimiento) {
@@ -586,11 +590,13 @@ Route::get('/movimiento/{id}/completo', function ($id) {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Movimiento completo con todas sus relaciones (incluyendo tipo)',
+            'message' => 'Movimiento completo con todas sus relaciones (incluyendo ubicaciones)',
             'movimiento_id' => $movimiento->OID,
             'tiene_tipo' => $movimiento->movimientoTipo ? true : false,
             'tiene_lote' => $movimiento->lote ? true : false,
             'tiene_orden_producto' => $movimiento->ordenProductoPresentacion ? true : false,
+            'tiene_ubicacion_origen' => $movimiento->ubicacionOrigen ? true : false,
+            'tiene_ubicacion_destino' => $movimiento->ubicacionDestino ? true : false,
             'datos' => $movimiento
         ]);
         
@@ -862,12 +868,12 @@ Route::get('/ubicaciones-tipos', function () {
 // Rutas para probar el modelo Ubicaciones
 Route::get('/ubicaciones', function () {
     try {
-        // Obtener ubicaciones con su tipo de ubicación
-        $ubicaciones = Ubicaciones::with('ubicacionTipo')->take(10)->get();
+        // Obtener ubicaciones con su tipo de ubicación y relaciones jerárquicas
+        $ubicaciones = Ubicaciones::with(['ubicacionTipo', 'ubicacionPadre', 'ubicacionesHijas'])->take(10)->get();
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Consulta exitosa a Ubicaciones con relaciones',
+            'message' => 'Consulta exitosa a Ubicaciones con relaciones (tipo y jerarquía)',
             'total' => Ubicaciones::count(),
             'datos' => $ubicaciones
         ]);
@@ -975,6 +981,251 @@ Route::get('/abc/{id}/productos', function ($id) {
             'abc_id' => $codigoABC->OID,
             'productos_count' => $codigoABC->productosPresentaciones->count(),
             'datos' => $codigoABC
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener ubicaciones raíz (sin ubicación padre)
+Route::get('/ubicaciones/raiz', function () {
+    try {
+        // Obtener ubicaciones que no tienen ubicación padre (nivel raíz)
+        $ubicacionesRaiz = Ubicaciones::with(['ubicacionTipo', 'ubicacionesHijas.ubicacionTipo'])
+            ->whereNull('UbicacionP')
+            ->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ubicaciones raíz con sus hijas directas',
+            'total_raiz' => $ubicacionesRaiz->count(),
+            'datos' => $ubicacionesRaiz
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener una ubicación con toda su jerarquía descendiente
+Route::get('/ubicacion/{id}/jerarquia', function ($id) {
+    try {
+        $ubicacion = Ubicaciones::with([
+            'ubicacionTipo',
+            'ubicacionPadre.ubicacionTipo',
+            'ubicacionesDescendientes.ubicacionTipo'
+        ])->find($id);
+        
+        if (!$ubicacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ubicación no encontrada'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ubicación con toda su jerarquía',
+            'ubicacion_id' => $ubicacion->OID,
+            'tiene_padre' => $ubicacion->ubicacionPadre ? true : false,
+            'hijas_directas' => $ubicacion->ubicacionesHijas->count(),
+            'datos' => $ubicacion
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener una ubicación con sus hijas directas solamente
+Route::get('/ubicacion/{id}/hijas', function ($id) {
+    try {
+        $ubicacion = Ubicaciones::with([
+            'ubicacionTipo',
+            'ubicacionesHijas.ubicacionTipo'
+        ])->find($id);
+        
+        if (!$ubicacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ubicación no encontrada'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ubicación con sus ubicaciones hijas directas',
+            'ubicacion_id' => $ubicacion->OID,
+            'hijas_count' => $ubicacion->ubicacionesHijas->count(),
+            'datos' => $ubicacion
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener el árbol completo de ubicaciones (limitado para evitar sobrecarga)
+Route::get('/ubicaciones/arbol', function () {
+    try {
+        // Obtener solo las ubicaciones raíz con sus descendientes (máximo 3 niveles)
+        $arbolUbicaciones = Ubicaciones::with([
+            'ubicacionTipo',
+            'ubicacionesHijas.ubicacionTipo',
+            'ubicacionesHijas.ubicacionesHijas.ubicacionTipo'
+        ])
+        ->whereNull('UbicacionP')
+        ->take(5) // Limitamos a 5 raíces para evitar sobrecarga
+        ->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Árbol de ubicaciones (máximo 3 niveles, 5 raíces)',
+            'total_raices' => $arbolUbicaciones->count(),
+            'datos' => $arbolUbicaciones
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Rutas para probar las relaciones entre Ubicaciones y Movimientos
+Route::get('/ubicacion/{id}/movimientos-origen', function ($id) {
+    try {
+        $ubicacion = Ubicaciones::with([
+            'ubicacionTipo',
+            'movimientosOrigen.movimientoTipo',
+            'movimientosOrigen.ubicacionDestino.ubicacionTipo'
+        ])->find($id);
+        
+        if (!$ubicacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ubicación no encontrada'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ubicación con movimientos donde es origen',
+            'ubicacion_id' => $ubicacion->OID,
+            'movimientos_origen_count' => $ubicacion->movimientosOrigen->count(),
+            'datos' => $ubicacion
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::get('/ubicacion/{id}/movimientos-destino', function ($id) {
+    try {
+        $ubicacion = Ubicaciones::with([
+            'ubicacionTipo',
+            'movimientosDestino.movimientoTipo',
+            'movimientosDestino.ubicacionOrigen.ubicacionTipo'
+        ])->find($id);
+        
+        if (!$ubicacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ubicación no encontrada'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ubicación con movimientos donde es destino',
+            'ubicacion_id' => $ubicacion->OID,
+            'movimientos_destino_count' => $ubicacion->movimientosDestino->count(),
+            'datos' => $ubicacion
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::get('/ubicacion/{id}/todos-movimientos', function ($id) {
+    try {
+        $ubicacion = Ubicaciones::with('ubicacionTipo')->find($id);
+        
+        if (!$ubicacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ubicación no encontrada'
+            ], 404);
+        }
+        
+        // Obtener todos los movimientos relacionados con esta ubicación
+        $todosMovimientos = $ubicacion->todosLosMovimientos()
+            ->with([
+                'movimientoTipo',
+                'ubicacionOrigen.ubicacionTipo',
+                'ubicacionDestino.ubicacionTipo'
+            ])
+            ->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Todos los movimientos relacionados con la ubicación',
+            'ubicacion_id' => $ubicacion->OID,
+            'total_movimientos' => $todosMovimientos->count(),
+            'ubicacion' => $ubicacion,
+            'movimientos' => $todosMovimientos
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener movimientos entre dos ubicaciones específicas
+Route::get('/movimientos/origen/{origen_id}/destino/{destino_id}', function ($origen_id, $destino_id) {
+    try {
+        $movimientos = Movimientos::with([
+            'movimientoTipo',
+            'ubicacionOrigen.ubicacionTipo',
+            'ubicacionDestino.ubicacionTipo',
+            'lote'
+        ])
+        ->where('UbicacionesOrigenes', $origen_id)
+        ->where('UbicacionesDestinos', $destino_id)
+        ->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Movimientos entre ubicaciones específicas',
+            'origen_id' => $origen_id,
+            'destino_id' => $destino_id,
+            'total_movimientos' => $movimientos->count(),
+            'datos' => $movimientos
         ]);
         
     } catch (\Exception $e) {

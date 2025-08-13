@@ -39,4 +39,59 @@ class Ubicaciones extends Model
     {
         return $this->belongsTo(UbicacionesTipos::class, 'UbicacionesTipos', 'OID');
     }
+    
+    /**
+     * Relación recursiva: Ubicación padre.
+     * Una ubicación puede tener una ubicación padre.
+     */
+    public function ubicacionPadre()
+    {
+        return $this->belongsTo(Ubicaciones::class, 'UbicacionP', 'OID');
+    }
+    
+    /**
+     * Relación recursiva: Ubicaciones hijas.
+     * Una ubicación puede tener muchas ubicaciones hijas.
+     */
+    public function ubicacionesHijas()
+    {
+        return $this->hasMany(Ubicaciones::class, 'UbicacionP', 'OID');
+    }
+    
+    /**
+     * Relación recursiva: Todas las ubicaciones descendientes.
+     * Obtiene todas las ubicaciones hijas de forma recursiva.
+     */
+    public function ubicacionesDescendientes()
+    {
+        return $this->ubicacionesHijas()->with('ubicacionesDescendientes');
+    }
+    
+    /**
+     * Relación uno a muchos con Movimientos (como origen).
+     * Una ubicación puede ser origen de muchos movimientos.
+     */
+    public function movimientosOrigen()
+    {
+        return $this->hasMany(Movimientos::class, 'UbicacionesOrigenes', 'OID');
+    }
+    
+    /**
+     * Relación uno a muchos con Movimientos (como destino).
+     * Una ubicación puede ser destino de muchos movimientos.
+     */
+    public function movimientosDestino()
+    {
+        return $this->hasMany(Movimientos::class, 'UbicacionesDestinos', 'OID');
+    }
+    
+    /**
+     * Obtener todos los movimientos relacionados con esta ubicación (origen y destino).
+     */
+    public function todosLosMovimientos()
+    {
+        // Esta es una función de conveniencia que puedes usar en consultas
+        return Movimientos::where('UbicacionesOrigenes', $this->OID)
+                         ->orWhere('UbicacionesDestinos', $this->OID);
+    }
 }

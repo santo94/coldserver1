@@ -57,4 +57,22 @@ class Movimientos extends Model
     {
         return $this->belongsTo(OrdenProductoPresentacion::class, 'ordenesProductosPresentaciones', 'OID');
     }
+    
+    /**
+     * Relación muchos a uno con Ubicaciones (Origen).
+     * Un movimiento tiene una ubicación de origen.
+     */
+    public function ubicacionOrigen()
+    {
+        return $this->belongsTo(Ubicaciones::class, 'UbicacionesOrigenes', 'OID');
+    }
+    
+    /**
+     * Relación muchos a uno con Ubicaciones (Destino).
+     * Un movimiento tiene una ubicación de destino.
+     */
+    public function ubicacionDestino()
+    {
+        return $this->belongsTo(Ubicaciones::class, 'UbicacionesDestinos', 'OID');
+    }
 }
