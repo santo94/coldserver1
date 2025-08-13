@@ -39,4 +39,13 @@ class Contenedores extends Model
     {
         return $this->belongsTo(Lotes::class, 'LotesContenedores', 'OID');
     }
+    
+    /**
+     * Relación uno a muchos con Movimientos.
+     * Un contenedor tiene muchos movimientos.
+     */
+    public function movimientos()
+    {
+        return $this->hasMany(Movimientos::class, 'Contenedores', 'OID');
+    }
 }

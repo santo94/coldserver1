@@ -75,4 +75,13 @@ class Movimientos extends Model
     {
         return $this->belongsTo(Ubicaciones::class, 'UbicacionesDestinos', 'OID');
     }
+    
+    /**
+     * Relación muchos a uno con Contenedores.
+     * Un movimiento pertenece a un contenedor.
+     */
+    public function contenedor()
+    {
+        return $this->belongsTo(Contenedores::class, 'Contenedores', 'OID');
+    }
 }

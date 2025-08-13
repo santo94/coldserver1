@@ -408,12 +408,12 @@ Route::get('/lotes', function () {
 // Rutas para probar el modelo Contenedores
 Route::get('/contenedores', function () {
     try {
-        // Obtener contenedores con su lote
-        $contenedores = Contenedores::with('lote')->take(10)->get();
+        // Obtener contenedores con su lote y movimientos
+        $contenedores = Contenedores::with(['lote', 'movimientos.movimientoTipo'])->take(10)->get();
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Consulta exitosa a Contenedores con relaciones',
+            'message' => 'Consulta exitosa a Contenedores con relaciones (lote y movimientos)',
             'total' => Contenedores::count(),
             'datos' => $contenedores
         ]);
@@ -485,10 +485,11 @@ Route::get('/contenedor/{id}/lote', function ($id) {
 // Rutas para probar el modelo Movimientos
 Route::get('/movimientos', function () {
     try {
-        // Obtener movimientos con todas sus relaciones (lote, orden producto presentación, tipo y ubicaciones)
+        // Obtener movimientos con todas sus relaciones (lote, orden producto presentación, tipo, ubicaciones y contenedor)
         $movimientos = Movimientos::with([
             'movimientoTipo',
             'lote', 
+            'contenedor.lote',
             'ordenProductoPresentacion.orden',
             'ubicacionOrigen.ubicacionTipo',
             'ubicacionDestino.ubicacionTipo'
@@ -496,7 +497,7 @@ Route::get('/movimientos', function () {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Consulta exitosa a Movimientos con todas las relaciones',
+            'message' => 'Consulta exitosa a Movimientos con todas las relaciones (incluyendo contenedor)',
             'total' => Movimientos::count(),
             'datos' => $movimientos
         ]);
@@ -513,8 +514,9 @@ Route::get('/movimientos', function () {
 Route::get('/lote/{id}/completo', function ($id) {
     try {
         $lote = Lotes::with([
-            'contenedores', 
+            'contenedores.movimientos.movimientoTipo',
             'movimientos.movimientoTipo',
+            'movimientos.contenedor',
             'movimientos.ordenProductoPresentacion.orden'
         ])->find($id);
         
@@ -525,12 +527,20 @@ Route::get('/lote/{id}/completo', function ($id) {
             ], 404);
         }
         
+        // Calcular movimientos totales (del lote + de sus contenedores)
+        $movimientosLote = $lote->movimientos->count();
+        $movimientosContenedores = $lote->contenedores->sum(function ($contenedor) {
+            return $contenedor->movimientos->count();
+        });
+        
         return response()->json([
             'status' => 'success',
-            'message' => 'Lote completo con contenedores y movimientos (incluyendo tipos)',
+            'message' => 'Lote completo con contenedores y movimientos (incluyendo movimientos de contenedores)',
             'lote_id' => $lote->OID,
             'contenedores_count' => $lote->contenedores->count(),
-            'movimientos_count' => $lote->movimientos->count(),
+            'movimientos_lote_count' => $movimientosLote,
+            'movimientos_contenedores_count' => $movimientosContenedores,
+            'total_movimientos' => $movimientosLote + $movimientosContenedores,
             'datos' => $lote
         ]);
         
@@ -576,6 +586,7 @@ Route::get('/movimiento/{id}/completo', function ($id) {
         $movimiento = Movimientos::with([
             'movimientoTipo',
             'lote.contenedores',
+            'contenedor.lote',
             'ordenProductoPresentacion.orden',
             'ubicacionOrigen.ubicacionTipo',
             'ubicacionDestino.ubicacionTipo'
@@ -590,10 +601,11 @@ Route::get('/movimiento/{id}/completo', function ($id) {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Movimiento completo con todas sus relaciones (incluyendo ubicaciones)',
+            'message' => 'Movimiento completo con todas sus relaciones (incluyendo contenedor)',
             'movimiento_id' => $movimiento->OID,
             'tiene_tipo' => $movimiento->movimientoTipo ? true : false,
             'tiene_lote' => $movimiento->lote ? true : false,
+            'tiene_contenedor' => $movimiento->contenedor ? true : false,
             'tiene_orden_producto' => $movimiento->ordenProductoPresentacion ? true : false,
             'tiene_ubicacion_origen' => $movimiento->ubicacionOrigen ? true : false,
             'tiene_ubicacion_destino' => $movimiento->ubicacionDestino ? true : false,
@@ -1226,6 +1238,75 @@ Route::get('/movimientos/origen/{origen_id}/destino/{destino_id}', function ($or
             'destino_id' => $destino_id,
             'total_movimientos' => $movimientos->count(),
             'datos' => $movimientos
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener un contenedor específico con todos sus movimientos
+Route::get('/contenedor/{id}/movimientos', function ($id) {
+    try {
+        $contenedor = Contenedores::with([
+            'lote',
+            'movimientos.movimientoTipo',
+            'movimientos.ubicacionOrigen.ubicacionTipo',
+            'movimientos.ubicacionDestino.ubicacionTipo'
+        ])->find($id);
+        
+        if (!$contenedor) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Contenedor no encontrado'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Contenedor con todos sus movimientos',
+            'contenedor_id' => $contenedor->OID,
+            'movimientos_count' => $contenedor->movimientos->count(),
+            'tiene_lote' => $contenedor->lote ? true : false,
+            'datos' => $contenedor
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener un contenedor completo (con lote y movimientos)
+Route::get('/contenedor/{id}/completo', function ($id) {
+    try {
+        $contenedor = Contenedores::with([
+            'lote.movimientos.movimientoTipo',
+            'movimientos.movimientoTipo',
+            'movimientos.ubicacionOrigen.ubicacionTipo',
+            'movimientos.ubicacionDestino.ubicacionTipo',
+            'movimientos.ordenProductoPresentacion.orden'
+        ])->find($id);
+        
+        if (!$contenedor) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Contenedor no encontrado'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Contenedor completo con lote y todos los movimientos',
+            'contenedor_id' => $contenedor->OID,
+            'movimientos_count' => $contenedor->movimientos->count(),
+            'lote_movimientos_count' => $contenedor->lote ? $contenedor->lote->movimientos->count() : 0,
+            'datos' => $contenedor
         ]);
         
     } catch (\Exception $e) {
