@@ -1320,3 +1320,5 @@ Route::get('/contenedor/{id}/completo', function ($id) {
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+Route::get('/empresas', [App\Http\Controllers\EmpresasController::class, 'index'])->name('home');
