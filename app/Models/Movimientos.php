@@ -32,6 +32,15 @@ class Movimientos extends Model
     protected $guarded = ['*'];
     
     /**
+     * Relación muchos a uno con MovimientosTipos.
+     * Un movimiento pertenece a un tipo de movimiento.
+     */
+    public function movimientoTipo()
+    {
+        return $this->belongsTo(MovimientosTipos::class, 'MovimientosTipos', 'OID');
+    }
+    
+    /**
      * Relación muchos a uno con Lotes.
      * Un movimiento pertenece a un lote.
      */

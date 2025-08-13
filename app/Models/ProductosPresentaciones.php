@@ -63,4 +63,13 @@ class ProductosPresentaciones extends Model
     {
         return $this->hasMany(EmpresaPresentacion::class, 'ID_Empresa_PPrsentacion', 'OID');
     }
+    
+    /**
+     * Relación muchos a uno con ABC.
+     * Una presentación de producto pertenece a un código ABC.
+     */
+    public function codigoABC()
+    {
+        return $this->belongsTo(ABC::class, 'abc', 'OID');
+    }
 }

@@ -16,6 +16,10 @@ use App\Models\Movimientos;
 use App\Models\Servicios;
 use App\Models\OrdenesServicios;
 use App\Models\OrdenesTipos;
+use App\Models\MovimientosTipos;
+use App\Models\UbicacionesTipos;
+use App\Models\Ubicaciones;
+use App\Models\ABC;
 
 Route::get('/', function () {
     return view('welcome');
@@ -257,8 +261,8 @@ Route::get('/unidades-medidas', function () {
 // Rutas para probar el modelo ProductosPresentaciones
 Route::get('/productos-presentaciones', function () {
     try {
-        // Obtener productos presentaciones con su unidad de medida
-        $presentaciones = ProductosPresentaciones::with('unidadMedida')->take(10)->get();
+        // Obtener productos presentaciones con su unidad de medida y código ABC
+        $presentaciones = ProductosPresentaciones::with(['unidadMedida', 'codigoABC'])->take(10)->get();
         
         return response()->json([
             'status' => 'success',
@@ -278,7 +282,7 @@ Route::get('/productos-presentaciones', function () {
 // Ruta para obtener una unidad de medida específica con todos sus productos presentaciones
 Route::get('/unidad-medida/{id}/productos', function ($id) {
     try {
-        $unidad = UnidadesMedidas::with('productosPresentaciones')->find($id);
+        $unidad = UnidadesMedidas::with(['productosPresentaciones.codigoABC', 'productosPresentaciones.empresas'])->find($id);
         
         if (!$unidad) {
             return response()->json([
@@ -289,7 +293,7 @@ Route::get('/unidad-medida/{id}/productos', function ($id) {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Unidad de medida con sus productos presentaciones',
+            'message' => 'Unidad de medida con sus productos presentaciones (incluyendo código ABC)',
             'unidad_id' => $unidad->OID,
             'productos_count' => $unidad->productosPresentaciones->count(),
             'datos' => $unidad
@@ -327,7 +331,7 @@ Route::get('/empresas-presentaciones', function () {
 // Ruta para probar relación many-to-many desde Empresas
 Route::get('/empresa/{id}/productos-presentaciones', function ($id) {
     try {
-        $empresa = Empresa::with('productosPresentaciones.unidadMedida')->find($id);
+        $empresa = Empresa::with(['productosPresentaciones.unidadMedida', 'productosPresentaciones.codigoABC'])->find($id);
         
         if (!$empresa) {
             return response()->json([
@@ -338,7 +342,7 @@ Route::get('/empresa/{id}/productos-presentaciones', function ($id) {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Empresa con sus productos presentaciones',
+            'message' => 'Empresa con sus productos presentaciones (incluyendo código ABC)',
             'empresa_id' => $empresa->OID,
             'productos_count' => $empresa->productosPresentaciones->count(),
             'datos' => $empresa
@@ -481,8 +485,12 @@ Route::get('/contenedor/{id}/lote', function ($id) {
 // Rutas para probar el modelo Movimientos
 Route::get('/movimientos', function () {
     try {
-        // Obtener movimientos con sus relaciones (lote y orden producto presentación)
-        $movimientos = Movimientos::with(['lote', 'ordenProductoPresentacion.orden'])->take(10)->get();
+        // Obtener movimientos con sus relaciones (lote, orden producto presentación y tipo)
+        $movimientos = Movimientos::with([
+            'movimientoTipo',
+            'lote', 
+            'ordenProductoPresentacion.orden'
+        ])->take(10)->get();
         
         return response()->json([
             'status' => 'success',
@@ -502,7 +510,11 @@ Route::get('/movimientos', function () {
 // Ruta para obtener un lote específico con sus contenedores y movimientos
 Route::get('/lote/{id}/completo', function ($id) {
     try {
-        $lote = Lotes::with(['contenedores', 'movimientos.ordenProductoPresentacion.orden'])->find($id);
+        $lote = Lotes::with([
+            'contenedores', 
+            'movimientos.movimientoTipo',
+            'movimientos.ordenProductoPresentacion.orden'
+        ])->find($id);
         
         if (!$lote) {
             return response()->json([
@@ -513,7 +525,7 @@ Route::get('/lote/{id}/completo', function ($id) {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Lote completo con contenedores y movimientos',
+            'message' => 'Lote completo con contenedores y movimientos (incluyendo tipos)',
             'lote_id' => $lote->OID,
             'contenedores_count' => $lote->contenedores->count(),
             'movimientos_count' => $lote->movimientos->count(),
@@ -560,6 +572,7 @@ Route::get('/orden-producto/{id}/movimientos', function ($id) {
 Route::get('/movimiento/{id}/completo', function ($id) {
     try {
         $movimiento = Movimientos::with([
+            'movimientoTipo',
             'lote.contenedores',
             'ordenProductoPresentacion.orden'
         ])->find($id);
@@ -573,8 +586,9 @@ Route::get('/movimiento/{id}/completo', function ($id) {
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Movimiento completo con todas sus relaciones',
+            'message' => 'Movimiento completo con todas sus relaciones (incluyendo tipo)',
             'movimiento_id' => $movimiento->OID,
+            'tiene_tipo' => $movimiento->movimientoTipo ? true : false,
             'tiene_lote' => $movimiento->lote ? true : false,
             'tiene_orden_producto' => $movimiento->ordenProductoPresentacion ? true : false,
             'datos' => $movimiento
@@ -762,6 +776,205 @@ Route::get('/orden-tipo/{id}/ordenes', function ($id) {
             'tipo_orden_id' => $tipoOrden->OID,
             'ordenes_count' => $tipoOrden->ordenes->count(),
             'datos' => $tipoOrden
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Rutas para probar el modelo MovimientosTipos
+Route::get('/movimientos-tipos', function () {
+    try {
+        // Obtener tipos de movimientos con sus movimientos relacionados
+        $tiposMovimientos = MovimientosTipos::with('movimientos')->take(10)->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Consulta exitosa a MovimientosTipos con relaciones',
+            'total' => MovimientosTipos::count(),
+            'datos' => $tiposMovimientos
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener un tipo de movimiento específico con todos sus movimientos
+Route::get('/movimiento-tipo/{id}/movimientos', function ($id) {
+    try {
+        $tipoMovimiento = MovimientosTipos::with([
+            'movimientos.lote.contenedores',
+            'movimientos.ordenProductoPresentacion.orden'
+        ])->find($id);
+        
+        if (!$tipoMovimiento) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tipo de movimiento no encontrado'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tipo de movimiento con todos sus movimientos y relaciones',
+            'tipo_movimiento_id' => $tipoMovimiento->OID,
+            'movimientos_count' => $tipoMovimiento->movimientos->count(),
+            'datos' => $tipoMovimiento
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Rutas para probar el modelo UbicacionesTipos
+Route::get('/ubicaciones-tipos', function () {
+    try {
+        // Obtener tipos de ubicaciones con sus ubicaciones relacionadas
+        $tiposUbicaciones = UbicacionesTipos::with('ubicaciones')->take(10)->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Consulta exitosa a UbicacionesTipos con relaciones',
+            'total' => UbicacionesTipos::count(),
+            'datos' => $tiposUbicaciones
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Rutas para probar el modelo Ubicaciones
+Route::get('/ubicaciones', function () {
+    try {
+        // Obtener ubicaciones con su tipo de ubicación
+        $ubicaciones = Ubicaciones::with('ubicacionTipo')->take(10)->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Consulta exitosa a Ubicaciones con relaciones',
+            'total' => Ubicaciones::count(),
+            'datos' => $ubicaciones
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener un tipo de ubicación específico con todas sus ubicaciones
+Route::get('/ubicacion-tipo/{id}/ubicaciones', function ($id) {
+    try {
+        $tipoUbicacion = UbicacionesTipos::with('ubicaciones')->find($id);
+        
+        if (!$tipoUbicacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tipo de ubicación no encontrado'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tipo de ubicación con todas sus ubicaciones',
+            'tipo_ubicacion_id' => $tipoUbicacion->OID,
+            'ubicaciones_count' => $tipoUbicacion->ubicaciones->count(),
+            'datos' => $tipoUbicacion
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener una ubicación específica con su tipo
+Route::get('/ubicacion/{id}/tipo', function ($id) {
+    try {
+        $ubicacion = Ubicaciones::with('ubicacionTipo')->find($id);
+        
+        if (!$ubicacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ubicación no encontrada'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ubicación con su tipo',
+            'ubicacion_id' => $ubicacion->OID,
+            'tipo_ubicacion' => $ubicacion->ubicacionTipo,
+            'tiene_tipo' => $ubicacion->ubicacionTipo ? true : false
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Rutas para probar el modelo ABC
+Route::get('/abc', function () {
+    try {
+        // Obtener códigos ABC con sus productos presentaciones relacionados
+        $codigosABC = ABC::with('productosPresentaciones')->take(10)->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Consulta exitosa a ABC con relaciones',
+            'total' => ABC::count(),
+            'datos' => $codigosABC
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Ruta para obtener un código ABC específico con todos sus productos presentaciones
+Route::get('/abc/{id}/productos', function ($id) {
+    try {
+        $codigoABC = ABC::with(['productosPresentaciones.unidadMedida', 'productosPresentaciones.empresas'])->find($id);
+        
+        if (!$codigoABC) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Código ABC no encontrado'
+            ], 404);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Código ABC con todos sus productos presentaciones y relaciones',
+            'abc_id' => $codigoABC->OID,
+            'productos_count' => $codigoABC->productosPresentaciones->count(),
+            'datos' => $codigoABC
         ]);
         
     } catch (\Exception $e) {
