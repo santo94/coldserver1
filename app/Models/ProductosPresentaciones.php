@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Empresa extends Model
+class ProductosPresentaciones extends Model
 {
     /**
      * La tabla asociada al modelo.
      */
-    protected $table = 'Empresas';
+    protected $table = 'ProductosPresentaciones';
     
     /**
      * La clave primaria de la tabla.
@@ -32,25 +32,25 @@ class Empresa extends Model
     protected $guarded = ['*'];
     
     /**
-     * Relación muchos a uno con EmpresasTipos.
-     * Una empresa pertenece a un tipo de empresa.
+     * Relación muchos a uno con UnidadesMedidas.
+     * Una presentación de producto pertenece a una unidad de medida.
      */
-    public function empresaTipo()
+    public function unidadMedida()
     {
-        return $this->belongsTo(EmpresasTipos::class, 'EmpresasTipos', 'OID');
+        return $this->belongsTo(UnidadesMedidas::class, 'UnidadesMedidas', 'OID');
     }
     
     /**
-     * Relación muchos a muchos con ProductosPresentaciones a través de EmpresaPPresentacion.
-     * Una empresa puede tener muchas presentaciones de productos.
+     * Relación muchos a muchos con Empresas a través de EmpresaPPresentacion.
+     * Una presentación de producto puede estar asociada a muchas empresas.
      */
-    public function productosPresentaciones()
+    public function empresas()
     {
         return $this->belongsToMany(
-            ProductosPresentaciones::class,
+            Empresa::class,
             'EmpresaPPresentacion',
-            'ID_Empresa_ProveedorE',
             'ID_Empresa_PPrsentacion',
+            'ID_Empresa_ProveedorE',
             'OID',
             'OID'
         );
@@ -61,6 +61,6 @@ class Empresa extends Model
      */
     public function empresaPresentaciones()
     {
-        return $this->hasMany(EmpresaPresentacion::class, 'ID_Empresa_ProveedorE', 'OID');
+        return $this->hasMany(EmpresaPresentacion::class, 'ID_Empresa_PPrsentacion', 'OID');
     }
 }

@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class OrdenProductoPresentacion extends Model
+class OrdenDetalle extends Model
 {
     /**
      * La tabla asociada al modelo.
      */
-    protected $table = 'OrdenesProductosPresentaciones';
+    protected $table = 'OrdenesDetalles';
     
     /**
      * La clave primaria de la tabla.
@@ -32,20 +32,11 @@ class OrdenProductoPresentacion extends Model
     protected $guarded = ['*'];
     
     /**
-     * Relación muchos a uno con Ordenes.
-     * Un producto presentación pertenece a una orden.
+     * Relación uno a uno con Ordenes.
+     * Un detalle pertenece a una orden.
      */
     public function orden()
     {
         return $this->belongsTo(Orden::class, 'Ordenes', 'OID');
-    }
-    
-    /**
-     * Relación uno a muchos con Movimientos.
-     * Una orden producto presentación tiene muchos movimientos.
-     */
-    public function movimientos()
-    {
-        return $this->hasMany(Movimientos::class, 'ordenesProductosPresentaciones', 'OID');
     }
 }

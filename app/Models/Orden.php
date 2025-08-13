@@ -32,11 +32,53 @@ class Orden extends Model
     protected $guarded = ['*'];
     
     /**
+     * Relación muchos a uno con OrdenesTipos.
+     * Una orden pertenece a un tipo de orden.
+     */
+    public function ordenTipo()
+    {
+        return $this->belongsTo(OrdenesTipos::class, 'OrdenesTipos', 'OID');
+    }
+    
+    /**
      * Relación uno a muchos con OrdenesProductosPresentaciones.
      * Una orden puede tener muchos productos presentaciones.
      */
     public function productosPresententaciones()
     {
         return $this->hasMany(OrdenProductoPresentacion::class, 'Ordenes', 'OID');
+    }
+    
+    /**
+     * Relación uno a uno con OrdenesDetalles.
+     * Una orden tiene un detalle.
+     */
+    public function detalle()
+    {
+        return $this->hasOne(OrdenDetalle::class, 'Ordenes', 'OID');
+    }
+    
+    /**
+     * Relación muchos a muchos con Servicios a través de OrdenesServicios.
+     * Una orden puede tener muchos servicios.
+     */
+    public function servicios()
+    {
+        return $this->belongsToMany(
+            Servicios::class,
+            'OrdenesServicios',
+            'OIDOrden',
+            'OIDServicio',
+            'OID',
+            'OID'
+        );
+    }
+    
+    /**
+     * Relación directa con OrdenesServicios para acceso a la tabla pivote.
+     */
+    public function ordenesServicios()
+    {
+        return $this->hasMany(OrdenesServicios::class, 'OIDOrden', 'OID');
     }
 }
