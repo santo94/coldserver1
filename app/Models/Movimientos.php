@@ -84,4 +84,6 @@ class Movimientos extends Model
     {
         return $this->belongsTo(Contenedores::class, 'Contenedores', 'OID');
     }
+
+   
 }

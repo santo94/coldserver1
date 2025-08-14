@@ -20,10 +20,20 @@ use App\Models\MovimientosTipos;
 use App\Models\UbicacionesTipos;
 use App\Models\Ubicaciones;
 use App\Models\ABC;
+use App\Http\Controllers\EmpresasController;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/visualizar', [EmpresasController::class, 'index'])->name('admin.empresas');
+
+Route::post('/buscarentrada',[EmpresasController::class,'index'])->name('buscar');
+
+Route::get('/salidas',[EmpresasController::class, 'salidas'])->name('salidas.lista');
+Route::post('/buscarsalida',[EmpresasController::class,'salidas'])->name('buscar.salidas');
+Route::get('/almacenamiento',[EmpresasController::class,'almacenamiento'])->name('almacenamiento.lista');
+
 
 // Ruta para probar la conexión a SQL Server consultando la tabla ordenes
 Route::get('/ordenes', function () {
@@ -1322,3 +1332,7 @@ Auth::routes();
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 Route::get('/empresas', [App\Http\Controllers\EmpresasController::class, 'index'])->name('home');
+
+Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

@@ -48,4 +48,8 @@ class Contenedores extends Model
     {
         return $this->hasMany(Movimientos::class, 'Contenedores', 'OID');
     }
+
+     public function ProdUbicExis(){
+        return $this->hasOne(ProductosUbicacionesExistencia::class, 'ContenedorOid', 'OID');
+    }
 }

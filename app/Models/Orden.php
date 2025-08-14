@@ -48,6 +48,8 @@ class Orden extends Model
     {
         return $this->hasMany(OrdenProductoPresentacion::class, 'Ordenes', 'OID');
     }
+
+
     
     /**
      * Relación uno a uno con OrdenesDetalles.
@@ -73,10 +75,26 @@ class Orden extends Model
             'OID'
         );
     }
+
+    public function cliente()
+    {
+        return $this->hasOne(Empresas::class,'OID','OidProveedor');
+    }
+
+    public function proveedor()
+    {
+        return $this->hasOne(Empresas::class,'OID','OidCliente');
+    }
     
     /**
      * Relación directa con OrdenesServicios para acceso a la tabla pivote.
      */
+
+    // Esta orden pertenece a otra orden (la de servicio)
+public function ordenDeServicio()
+{
+    return $this->belongsTo(Orden::class, 'CodigoRastreo', 'Codigo');
+}
     public function ordenesServicios()
     {
         return $this->hasMany(OrdenesServicios::class, 'OIDOrden', 'OID');

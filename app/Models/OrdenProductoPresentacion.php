@@ -39,6 +39,11 @@ class OrdenProductoPresentacion extends Model
     {
         return $this->belongsTo(Orden::class, 'Ordenes', 'OID');
     }
+
+    public function ProdPre()
+    {
+        return $this->belongsTo(ProductosPresentaciones::class,'productosPresentaciones','OID');
+    }
     
     /**
      * Relación uno a muchos con Movimientos.
@@ -47,5 +52,15 @@ class OrdenProductoPresentacion extends Model
     public function movimientos()
     {
         return $this->hasMany(Movimientos::class, 'ordenesProductosPresentaciones', 'OID');
+    }
+
+    public function MovimientoEntrada()
+    {
+        return $this->hasOne(Movimientos::class, 'ordenesProductosPresentaciones','OID');
+    }
+
+    public function unidmed()
+    {
+        return $this->hasOne(UnidadesMedidas::class,'OID','UnidadesMedidas');
     }
 }
