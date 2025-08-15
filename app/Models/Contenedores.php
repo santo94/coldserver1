@@ -52,4 +52,12 @@ class Contenedores extends Model
      public function ProdUbicExis(){
         return $this->hasOne(ProductosUbicacionesExistencia::class, 'ContenedorOid', 'OID');
     }
+    public function datos(){
+        return $this->hasOne(Datoscontenedor::class,'ContenedorOid', 'OID');
+    }
+
+    public function sscc_ep()
+    {
+        return $this->hasOne(EmpresasSSCC_EmpresasSSCC::class,'SSCC','SSCC');
+    }
 }

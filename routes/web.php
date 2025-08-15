@@ -23,17 +23,25 @@ use App\Models\ABC;
 use App\Http\Controllers\EmpresasController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/login');
 });
 
 Route::get('/visualizar', [EmpresasController::class, 'index'])->name('admin.empresas');
+Route::post('/agregar',[EmpresasController::class,'index'])->name('entrada.agregar');
+Route::post('/agregars',[EmpresasController::class,'salidas'])->name('entrada.agregarsalida');
 
 Route::post('/buscarentrada',[EmpresasController::class,'index'])->name('buscar');
 
 Route::get('/salidas',[EmpresasController::class, 'salidas'])->name('salidas.lista');
 Route::post('/buscarsalida',[EmpresasController::class,'salidas'])->name('buscar.salidas');
 Route::get('/almacenamiento',[EmpresasController::class,'almacenamiento'])->name('almacenamiento.lista');
+Route::post('/agregara',[EmpresasController::class,'cargar'])->name('almacenamiento.lista');
 
+Route::get('/crear',[EmpresasController::class,'crear']);
+
+Route::get('/movimientos',[EmpresasController::class,'movform']);
+
+Route::post('//buscarrep',[EmpresasController::class,'buscarrep']);
 
 // Ruta para probar la conexión a SQL Server consultando la tabla ordenes
 Route::get('/ordenes', function () {
@@ -493,7 +501,7 @@ Route::get('/contenedor/{id}/lote', function ($id) {
 });
 
 // Rutas para probar el modelo Movimientos
-Route::get('/movimientos', function () {
+Route::get('/movimientoss', function () {
     try {
         // Obtener movimientos con todas sus relaciones (lote, orden producto presentación, tipo, ubicaciones y contenedor)
         $movimientos = Movimientos::with([

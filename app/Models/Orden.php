@@ -49,6 +49,10 @@ class Orden extends Model
         return $this->hasMany(OrdenProductoPresentacion::class, 'Ordenes', 'OID');
     }
 
+    public function usuar()
+    {
+        return $this->hasOne(Usuario::class, 'Oid', 'Usuario');
+    }
 
     
     /**

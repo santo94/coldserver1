@@ -14,15 +14,15 @@
 @if(isset($filtro))
 <div class="container">
 
-    <h3>Resultados del {{$fecha1}} al {{$fecha2}}</h3> <a class="btn btn-info" href="/visualizar"> <i class="fa fa-reply" aria-hidden="true"></i> Regresar...</a>
+    <h3>Resultados del {{$fecha1}} al {{$fecha2}}</h3> <a class="btn btn-info" href="/salidas"> <i class="fa fa-reply" aria-hidden="true"></i> Regresar...</a>
 
 <div class="form-group row">
     <label for="filtroOrden" class="col-md-2 col-form-label">Filtrar por Orden</label>
     <div class="col-md-6">
-    <select class="form-control" id="filtroOrden">
-        <option value="">Todos</option>
+    <select class="form-control" id="filtroOrden" >
+        <option value="" >Todos</option>
         @foreach($ordenesEntrada as $orden)
-            <option value="{{ $orden->Codigo }}">{{ $orden->Codigo }}</option>
+            <option  value="{{ $orden->Codigo }}" @if($ordinput == $orden->Codigo) selected @endif>{{ $orden->Codigo }}</option>
         @endforeach
     </select>
 </div>
@@ -57,8 +57,10 @@
                 <th>Cliente</th>
                 <th>Codigo Servicio</th>
                 <th>Servicios</th>
+                <th>Total días Almacenje</th>
                 <th>Altura</th>
                 <th>Tipo de almacenado</th>
+                <th></th>
                
             </tr>
         </thead>
@@ -70,13 +72,21 @@
                 <td>{{$prodpre->ProdPre->Codigo}}</td>
               <!--  <td>{{$prodpre->OID}}</td> -->
                 <td>{{$prodpre->ProdPre->Nombre}}</td>
+                @if($prodpre->MovimientoEntrada)
                 <td>{{$prodpre->MovimientoEntrada->Cantidad}}</td>
-                <td>{{$prodpre->MovimientoEntrada->contenedor->OID}}</td>
-                <td>{{$prodpre->MovimientoEntrada->contenedor->SSCC}}</td>
+                <td>{{$prodpre->MovimientoEntrada->contenedor->OID}} </td>
+                <td>{{$prodpre->MovimientoEntrada->contenedor->SSCC}} </td>
                 <td>{{$prodpre->unidmed->Nombre}}</td>
-                @php $fecha1=new DateTime($prodpre->MovimientoEntrada->contenedor->FechaRecepcion); @endphp
+                @php  $fecha1=new DateTime($prodpre->MovimientoEntrada->contenedor->FechaRecepcion); @endphp
                 <td data-order="{{$fecha1->format('Y-m-d H:i:s')}}"
     data-search="{{$fecha1->format('Y-m-d H:i:s')}}">{{$fecha1->format("Y-m-d g:i:s A")}}</td>
+                @else
+                <td>{{$prodpre->Cantidad}}</td>
+                <td></td>
+                <td>{{$prodpre->SSCC}}</td>
+                <td>{{$prodpre->unidmed->Nombre}}</td>
+                <td>{{$prodpre->contenedor->FechaRecepcion}}</td>
+                @endif
                 @php $fecha=new DateTime($ordenes->Fecha); @endphp
                 <td data-order="{{$fecha->format('Y-m-d H:i:s')}}"
     data-search="{{$fecha->format('Y-m-d H:i:s')}}">{{$fecha->format("Y-m-d g:i:s A")}}</td>
@@ -101,10 +111,58 @@
 
                    @endif 
                 </td>
+                <td> 
+                    @php
+                    $fechaEvaluar = $fecha; // la fecha que quieres evaluar
+                    
+                    if ($fecha->format("Y-m") === $fecha1->format("Y-m")) {
+                        $fecin=$fecha1;
+                        $diferencia = $fecin->diff($fechaEvaluar);
+                        $diasTranscurridos = $diferencia->days + 2;
+                    } else {
+                       $fecin = new DateTime($fechaEvaluar->format("Y-m-01"));
+                       $diferencia = $fecin->diff($fechaEvaluar);
+                       $diasTranscurridos = $diferencia->days + 1;
+                    }
+                     // primer día del mismo mes
 
-                <td></td>
-                <td></td>
+                    
+                    
+                    @endphp
+
+                    {{$diasTranscurridos}}
+                </td>
+
+                <td>
+                   
+                   @if($prodpre->contenedor->datos)
+                    {{$prodpre->contenedor->datos->altura}}
+                    @endif
+
+                  
+
+                </td>
+                <td>
+
+                    @if($prodpre->contenedor->datos)
+                    {{$prodpre->contenedor->datos->tipo}}
+                    @endif
+
+                </td>
+                <td><button 
+                @php
+                    $bs = $prodpre->MovimientoEntrada
+                        ? $prodpre->MovimientoEntrada->Contenedor->OID
+                        : $prodpre->contenedor->OID;
+                @endphp
                 
+                    class="btn btn-sm btn-primary btn-altura-almacenado" 
+                    data-contenedor="{{$bs}}" 
+                    data-toggle="modal" 
+                    data-target="#modalAlturaAlmacenado">
+                    Agregar
+                </button>
+                </td>
                 
             </tr>
          
@@ -145,6 +203,53 @@
 </div>
 
 @endif
+
+<!-- Modal Altura y Tipo de Almacenado -->
+<div class="modal fade" id="modalAlturaAlmacenado" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/agregars" method="POST">
+        @csrf
+        <input  name="contenedor_oid" id="contenedor_oid">
+        <input type="text" name="orden" id="ordenb">
+        <input type="text" name="inicio" 
+       value="@if(isset($fecha1)){{ $fecha1->format('Y-m-d H:m:s') }} @endif">
+        <input type="text"   name="fin" value="@if(isset($fecha2)){{$fecha2}} @endif">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalLabel">Agregar Altura y Tipo de Almacenado</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="altura">Altura</label>
+            <select name="altura" class="form-control" required>
+                <option value="">Seleccione...</option>
+                <option value="1.35">1.35 M</option>
+                 <option value="1.70">1.70 M</option>
+                  <option value="2.0">2.0 M</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tipo_almacenado">Tipo de Almacenado</label>
+            <select name="tipo_almacenado" id="tipo_almacenado" class="form-control" required>
+              <option value="">Seleccione...</option>
+              <option value="REFRIGERADO">REFRIGERADO</option>
+              <option value="CONGELADO">CONGELADO</option>
+              <option value="TEMPERATURA">TEMPERATURA</option>
+              <!-- Puedes agregar más -->
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
   
 @stop
 
@@ -171,8 +276,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 
     <script>
+
+        $(document).on('click', '.btn-altura-almacenado', function() {
+            let contenedorOid = $(this).data('contenedor');
+            $('#contenedor_oid').val(contenedorOid);
+
+            var orden=$('#filtroOrden').val();
+            $('#ordenb').val(orden);
+        });
+
 $(document).ready(function() {
     var table = $('#miTabla').DataTable({
+        columnDefs: [
+        {
+            targets: [12], // índice de la columna que quieres formatear
+            render: function(data, type, row) {
+                return parseFloat(data).toFixed(2); // siempre 2 decimales
+            }
+        }
+    ],
         responsive: true,
         autoWidth: true,
         language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json" },

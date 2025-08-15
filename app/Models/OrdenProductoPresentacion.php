@@ -63,4 +63,9 @@ class OrdenProductoPresentacion extends Model
     {
         return $this->hasOne(UnidadesMedidas::class,'OID','UnidadesMedidas');
     }
+
+    public function contenedor()
+    {
+        return $this->hasOne(Contenedores::class,'SSCC','SSCC');
+    }
 }
