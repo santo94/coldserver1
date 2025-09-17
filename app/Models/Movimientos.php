@@ -24,7 +24,22 @@ class Movimientos extends Model
     /**
      * Los atributos que se pueden asignar masivamente (solo lectura).
      */
-    protected $fillable = [];
+    protected $fillable = [
+        'FechaCreacion',
+        'Cantidad',
+        'MovimientosTipos',
+        'ordenesProductosPresentaciones',
+        'UbicacionesOrigenes',
+        'UbicacionesDestinos',
+        'UsuarioCrea',
+        'Lotes',
+        'Contenedores',
+        'ProductosPresentaciones',
+        'CantidadEnPiezas',
+        'OIDUM',
+    ];
+
+    //90bdc88b-be85-4041-a9fc-2ef8dde38872  UsuarioCrea
     
     /**
      * Los atributos que deben ser protegidos de asignación masiva.

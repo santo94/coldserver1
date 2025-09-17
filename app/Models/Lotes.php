@@ -24,7 +24,14 @@ class Lotes extends Model
     /**
      * Los atributos que se pueden asignar masivamente (solo lectura).
      */
-    protected $fillable = [];
+    protected $fillable = [
+        'OID',
+        'Lote',
+        'FechaCaducidad',
+        'FechaRecepcion',
+        'OptimisticLockField',
+        'GCRecord',
+    ];
     
     /**
      * Los atributos que deben ser protegidos de asignación masiva.
