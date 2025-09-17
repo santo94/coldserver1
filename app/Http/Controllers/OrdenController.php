@@ -9,6 +9,7 @@ use App\Models\Contenedores;
 use App\Models\Movimientos;
 use App\Models\ProductosUbicacionesExistencia;
 use App\Models\OrdenProductoPresentacion;
+use App\Models\EmpresasSSCC_EmpresasSSCC;
 use Carbon\Carbon;
 
 class OrdenController extends Controller
@@ -105,7 +106,10 @@ class OrdenController extends Controller
             ]);
 
             // Obtener el producto de la orden
-            $ordenProducto = OrdenProductoPresentacion::with(['ProdPre.unidadMedida'])->findOrFail($request->producto_id);
+            $ordenProducto = OrdenProductoPresentacion::with(['ProdPre.unidadMedida', 'orden'])->findOrFail($request->producto_id);
+            
+            // Obtener la orden para acceder al OidProveedor del cliente
+            $orden = $ordenProducto->orden;
             
             // 1. BUSCAR O CREAR LOTE
             $lote = Lotes::firstOrCreate(
@@ -202,6 +206,12 @@ class OrdenController extends Controller
                 'Estatus' => 1
             ]);
 
+            // 5. CREAR REGISTRO EN EMPRESASSSCC_EMPRESASSSCC
+            $empresaSSCC = EmpresasSSCC_EmpresasSSCC::create([
+                'SSCC' => $sscc,
+                'oidEmpresa' => $orden->OidProveedor  // OID del proveedor/cliente desde la orden
+            ]);
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Producto guardado correctamente',
@@ -210,8 +220,10 @@ class OrdenController extends Controller
                     'contenedor_id' => $contenedor->OID,
                     'movimiento_id' => $movimiento->OID,
                     'existencia_id' => $existencia->OID,
+                    'empresa_sscc_id' => $empresaSSCC->SSCC,  // Usar SSCC como clave primaria
                     'sscc' => $sscc,
-                    'batch' => $batch
+                    'batch' => $batch,
+                    'oid_proveedor' => $orden->OidProveedor  // Para verificar que se obtuvo correctamente
                 ]
             ]);
 

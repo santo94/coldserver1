@@ -14,7 +14,7 @@ class EmpresasSSCC_EmpresasSSCC extends Model
     /**
      * La clave primaria de la tabla.
      */
-    protected $primaryKey = 'OID';
+    protected $primaryKey = 'SSCC';
     
     /**
      * Indica si el modelo debe manejar timestamps.
@@ -22,9 +22,12 @@ class EmpresasSSCC_EmpresasSSCC extends Model
     public $timestamps = false;
     
     /**
-     * Los atributos que se pueden asignar masivamente (solo lectura).
+     * Los atributos que se pueden asignar masivamente.
      */
-    protected $fillable = [];
+    protected $fillable = [
+        'SSCC',
+        'oidEmpresa',
+    ];
     
     /**
      * Los atributos que deben ser protegidos de asignación masiva.
@@ -32,25 +35,20 @@ class EmpresasSSCC_EmpresasSSCC extends Model
     protected $guarded = ['*'];
     
     /**
-     * Relación muchos a uno con EmpresasTipos.
-     * Una empresa pertenece a un tipo de empresa.
+     * Relación muchos a uno con Empresa.
+     * Un SSCC pertenece a una empresa.
      */
-    public function empresasc()
+    public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'oidEmpresa', 'OID');
     }
     
     /**
-     * Relación muchos a muchos con ProductosPresentaciones a través de EmpresaPPresentacion.
-     * Una empresa puede tener muchas presentaciones de productos.
+     * Relación uno a uno con Contenedores.
+     * Un SSCC tiene un contenedor asociado.
      */
-   
-    
-    /**
-     * Relación directa con EmpresaPresentacion para acceso a la tabla pivote.
-     */
-    public function empresaPresentaciones()
+    public function contenedor()
     {
-        return $this->hasMany(EmpresaPresentacion::class, 'ID_Empresa_ProveedorE', 'OID');
+        return $this->belongsTo(Contenedores::class, 'SSCC', 'SSCC');
     }
 }
