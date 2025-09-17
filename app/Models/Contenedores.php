@@ -49,9 +49,24 @@ class Contenedores extends Model
         return $this->hasMany(Movimientos::class, 'Contenedores', 'OID');
     }
 
+    public function movimientoEntrada()
+    {
+        return $this->hasOne(Movimientos::class,'Contenedores','OID')->where('MovimientosTipos', 1);
+    }
+
      public function ProdUbicExis(){
         return $this->hasOne(ProductosUbicacionesExistencia::class, 'ContenedorOid', 'OID');
     }
+
+    public function prodhist(){
+        return $this->hasMany(ProductosUbicacionesExistenciaHistorico::class,'ContenedorOid', 'OID');
+    }
+
+    public function ultimaExistenciaHistorico()
+        {
+            return $this->hasOne(ProductosUbicacionesExistenciaHistorico::class, 'ContenedorOid', 'OID')
+                        ->latest('FechaInsercionDatosHistorico'); // suponiendo que tu campo de fecha se llama "Fecha"
+        }
     public function datos(){
         return $this->hasOne(Datoscontenedor::class,'ContenedorOid', 'OID');
     }
@@ -59,5 +74,14 @@ class Contenedores extends Model
     public function sscc_ep()
     {
         return $this->hasOne(EmpresasSSCC_EmpresasSSCC::class,'SSCC','SSCC');
+    }
+
+    public function Ajustes()
+    {
+        return $this->hasMany(InventarioAjustes::class, 'Contenedor','OID');
+    }
+
+    public function ordprodpre(){
+        return $this->hasOne(OrdenProductoPresentacion::class,'SSCC','SSCC');
     }
 }

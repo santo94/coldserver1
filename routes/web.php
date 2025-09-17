@@ -35,6 +35,7 @@ Route::post('/buscarentrada',[EmpresasController::class,'index'])->name('buscar'
 Route::get('/salidas',[EmpresasController::class, 'salidas'])->name('salidas.lista');
 Route::post('/buscarsalida',[EmpresasController::class,'salidas'])->name('buscar.salidas');
 Route::get('/almacenamiento',[EmpresasController::class,'almacenamiento'])->name('almacenamiento.lista');
+Route::post('almacenamiento',[EmpresasController::class,'almacenamiento']);
 Route::post('/agregara',[EmpresasController::class,'cargar'])->name('almacenamiento.lista');
 
 Route::get('/crear',[EmpresasController::class,'crear']);

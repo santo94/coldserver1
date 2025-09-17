@@ -34,7 +34,113 @@
 
 </div>
 
+   
 
+<div class="form-group row">
+    <label for="filtroOrden" class="col-md-2 col-form-label">Filtrar por SSCC</label>
+    <div class="col-md-6">
+    <select class="form-control" id="filtroOrden">
+        <option value="">Todos</option>
+        @for($x=0;$x < $sscc->count(); $x++)
+            @if(isset($sscc[$x]))
+            <option value="{{ $sscc[$x] }}">{{ $sscc[$x] }}</option>
+            @endif
+        @endfor
+    </select>
+</div>
+</div>
+
+ <div class="table-responsive">
+ 
+<table id="miTabla" class="table table-bordered table-striped ">
+<thead class="gray">
+            <tr>
+                <th>Cliente</th>
+               <!-- <th>Codigo Prod pre</th>-->
+                <th>Producto</th>
+                <th>SSCC</th>
+                <th>Fecha</th>
+                
+                <th>Tipo Movimiento</th>
+                <th>Cantidad</th>
+                <th>Existencia</th>
+                <th>Ubicación Origen</th>
+                
+                
+                
+                <th>Ubicación destino</th>
+                <th>Orden entrada</th>
+                
+                <th>Orden Salida</th>
+                <th>Usuario</th>
+                
+               
+            </tr>
+        </thead>
+        <tbody>
+         
+          @foreach($movimientos as $movimiento)
+            <tr >
+                <td>{{$movimiento->contenedor->sscc_ep->empresasc->Nombre}}</td>
+              
+                <td>
+                    @if($movimiento->ordenProductoPresentacion && $movimiento->ordenProductoPresentacion->ProdPre)
+                    {{$movimiento->ordenProductoPresentacion->ProdPre->Nombre}}
+                    @endif
+                </td>
+                <td>{{$movimiento->contenedor->SSCC}}</td>
+                 <td>{{$movimiento->FechaCreacion}}</td>
+                 <td>{{$movimiento->movimientoTipo->Nombre}}</td>
+                 
+                <td>{{$movimiento->Cantidad}}</td>
+                <td>{{$movimiento->Cantidad}}</td>
+    
+                <td> 
+                    @if($movimiento->ubicacionOrigen)
+                    {{$movimiento->ubicacionOrigen->Nombre}}
+                    @endif
+
+                </td>
+                <td> 
+                    @if($movimiento->ubicacionDestino)
+                    {{$movimiento->ubicacionDestino->Nombre}}
+                    @endif
+                </td>
+                
+                <td>
+                    @if($movimiento->ordenProductoPresentacion && $movimiento->ordenProductoPresentacion->orden)
+                    @if($movimiento->ordenProductoPresentacion->orden->OrdenesTipos == 1)
+                    {{$movimiento->ordenProductoPresentacion->orden->Codigo}}
+                    @endif
+                    @endif
+                </td>
+                
+                <td>
+                    @if($movimiento->ordenProductoPresentacion && $movimiento->ordenProductoPresentacion->orden)
+                    @if($movimiento->ordenProductoPresentacion->orden->OrdenesTipos == 2)
+                    {{$movimiento->ordenProductoPresentacion->orden->Codigo}}
+                    @endif
+                    @endif
+                </td>
+                <td>
+                   
+                    
+                    {{$movimiento->usuariom->NombreCompleto}}
+                   
+                   
+                   
+                </td>
+                
+            </tr>
+            @endforeach
+            
+            
+            <!-- Agrega más filas como necesites -->
+        </tbody>
+</table>
+{{-- Links de paginación --}}
+
+</div>  
 
 </div>
 

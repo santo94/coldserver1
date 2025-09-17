@@ -52,6 +52,17 @@
         <input type="text" name="orden" class="form-control" placeholder="COLDORD-2020">
             
         </div>
+        <div class="row">
+           <div class="form-group col-6 col-md-4">
+                <label for="inicio">Fecha inicio</label>
+                <input id="inicio" name="inicio" type="datetime-local" class="form-control" required>
+              </div>
+              <div class="form-group col-6 col-md-4">
+                <label for="fin">Fecha fin</label>
+                <input id="fin" name="fin" type="datetime-local" class="form-control" required>
+              </div>
+
+        </div>
         
         <button class="btn btn-success" type="submit">Buscar...</button>
     </form>
@@ -62,6 +73,8 @@
 <br>
 <br>
         <div class="card-body">
+
+            @if (isset($fechaFin)){{$fechaFin}} @endif
             <div class="table-responsive">
                 <table id="miTabla" class="table table-bordered table-striped table-hover">
                     <thead class="thead-light">
@@ -73,9 +86,10 @@
                             <th>Orden</th>
                             <th>F. Ingreso</th>
                             <th>SSCC</th>
-                            <th>Existencia</th>
-                            <th>Cliente</th>
+                            <th>Existencia al</th>
                             <th>Días</th>
+                            <th>Cliente</th>
+                           
                             <th>Altura</th>
                             <th>Tipo</th>
                             <th>Acción</th>
@@ -83,51 +97,45 @@
                     </thead>
                     <tbody>
                         {{-- El contenido de la tabla sigue siendo el mismo --}}
-                        @foreach($ordenesEntrada as $ordenes)
-                            @foreach ($ordenes->productosPresententaciones as $prodpre)
-                                @if($prodpre->MovimientoEntrada->contenedor->ProdUbicExis->CantidadExistente > 0)
+                        @foreach($ordenesEntrada as $contenedor)
+                               @if($contenedor->movimientoEntrada)
                                 <tr>
-                                    <td>{{$prodpre->ProdPre->Codigo}}</td>
-                                    <td>{{$prodpre->ProdPre->Nombre}}</td>
-                                    <td>{{$prodpre->MovimientoEntrada->contenedor->ProdUbicExis->CantidadExistente}}</td>
-                                    <td>{{$prodpre->unidmed->Nombre}}</td>
-                                    <td>{{$ordenes->Codigo}}</td>
-                                    @php $fecha1 = new DateTime($prodpre->MovimientoEntrada->contenedor->FechaRecepcion); @endphp
-                                    <td data-order="{{$fecha1->format('Y-m-d H:i:s')}}">{{$fecha1->format("d/m/Y")}}</td>
-                                    <td>{{$prodpre->MovimientoEntrada->contenedor->SSCC}}</td>
-                                    @php $fecha = date('Y-m-d'); @endphp
-                                    <td data-order="{{$fecha}}">{{date("d/m/Y")}}</td>
-                                    <td>{{ $prodpre->MovimientoEntrada->contenedor->sscc_ep->empresasc->Nombre }}</td>
-                                    <td>
-                                        @php
-                                        $fechaEvaluar = new DateTime($fecha);
-                                        if ($fechaEvaluar->format("Y-m") === $fecha1->format("Y-m")) {
-                                            $diasTranscurridos = $fecha1->diff($fechaEvaluar)->days + 2;
-                                        } else {
-                                            $fecin = new DateTime($fechaEvaluar->format("Y-m-01"));
-                                            $diasTranscurridos = $fecin->diff($fechaEvaluar)->days + 1;
-                                        }
-                                        @endphp
-                                        {{$diasTranscurridos}}
-                                    </td>
-                                    <td>
-                                        @if($prodpre->MovimientoEntrada->contenedor->datos)
-                                        {{$prodpre->MovimientoEntrada->contenedor->datos->altura}}
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($prodpre->MovimientoEntrada->contenedor->datos)
-                                        {{$prodpre->MovimientoEntrada->contenedor->datos->tipo}}
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary btn-altura-almacenado" data-contenedor="{{$prodpre->MovimientoEntrada->Contenedor->OID}}" data-toggle="modal" data-target="#modalAlturaAlmacenado">
-                                            <i class="fas fa-plus"></i>
+                                    <td>{{$contenedor->movimientoEntrada->ordenProductoPresentacion->ProdPre->Codigo ?? 0}}</td>
+                                   <td>{{$contenedor->movimientoEntrada->ordenProductoPresentacion->ProdPre->Nombre ?? 0}}</td>
+                                   <td>{{$contenedor->total_entradas}}</td>
+                                   <td>{{$contenedor->movimientoEntrada->ordenProductoPresentacion->ProdPre->unidadMedida->Nombre}}</td>
+                                   <td>{{$contenedor->movimientoEntrada->ordenProductoPresentacion->orden->Codigo}}</td>
+                                   <td>{{ \Carbon\Carbon::parse($contenedor->movimientoEntrada->ordenProductoPresentacion->orden->Fecha)->format('Y-m-d') }}</td>
+                                   
+                                   <td>{{$contenedor->SSCC}}</td>
+                                   <td>{{ \Carbon\Carbon::parse($fechaFin)->format('Y-m-d')}}</td>
+                                   @php
+                                    $fechabd = \Carbon\Carbon::parse($contenedor->movimientoEntrada->ordenProductoPresentacion->orden->Fecha);
+    $fecha1  = \Carbon\Carbon::parse($fechaFin);
+    $fecha2  = \Carbon\Carbon::parse($fechaInici);
+
+    if($fechabd < $fecha2){
+        $diferencia = $fecha2->diffInDays($fecha1);
+    } else {
+        $diferencia = $fechabd->diffInDays($fecha1); 
+    }
+                                    @endphp
+                                   <td>{{ceil($diferencia+1)}}</td>
+                                   <td>{{$contenedor->sscc_ep->empresasc->Nombre}}</td>
+                                  
+                                   <td>{{$contenedor->datos->altura ?? 0}}</td>
+                                   <td>{{$contenedor->datos->tipo ?? ""}}</td>
+                                   <td>
+                                         <button class="btn btn-sm btn-primary btn-altura-almacenado" 
+                                            data-contenedor="{{$contenedor->OID}}" 
+                                            data-orden="{{$contenedor->movimientoEntrada->ordenProductoPresentacion->orden->Codigo}}"
+                                            data-toggle="modal" 
+                                            data-target="#modalAlturaAlmacenado">
+                                            <i class="fas fa-plus"></i> Agregar
                                         </button>
-                                    </td>
+                                   </td>
                                 </tr>
                                 @endif
-                            @endforeach
                         @endforeach
                     </tbody>
                     <tfoot>
@@ -156,6 +164,52 @@
             </div>
         </div>
     </div>
+</div>
+
+<div class="modal fade" id="modalAlturaAlmacenado" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form action="/agregar" method="POST">
+        @csrf
+        <input type="hidden" name="contenedor_oid" id="contenedor_oid">
+        <input type="hidden" name="orden" id="ordenb">
+        <input type="hidden" name="inicio" value="@if(isset($fecha1)){{$fecha1}}@endif">
+        <input type="hidden" name="fin" value="@if(isset($fecha2)){{$fecha2}}@endif">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalLabel">Agregar Altura y Tipo de Almacenado</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group col-12 col-md-6">
+              <label for="altura">Altura</label>
+              <select name="altura" id="altura" class="form-control" required>
+                  <option value="">Seleccione...</option>
+                  <option value="1.35">1.35 m</option>
+                  <option value="1.70">1.70 m</option>
+                  <option value="2.0">2.00 m</option>
+              </select>
+            </div>
+            <div class="form-group col-12 col-md-6">
+              <label for="tipo_almacenado">Tipo de Almacenado</label>
+              <select name="tipo_almacenado" id="tipo_almacenado" class="form-control" required>
+                <option value="">Seleccione...</option>
+                <option value="REFRIGERADO">REFRIGERADO</option>
+                <option value="CONGELADO">CONGELADO</option>
+                <option value="TEMPERATURA">TEMPERATURA</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 @else
     {{-- ... (código del else sin cambios) ... --}}

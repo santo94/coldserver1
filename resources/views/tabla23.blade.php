@@ -182,13 +182,13 @@
     }
 
    foreach ($mov as $movi) {
-    $f=$ordenes->Fecha ?? $movi->FechaCreacion;
-    if ($f <= $fecha2) {
-      if($movi->ordenProductoPresentacion){
-      $fechaOr=$movi->ordenProductoPresentacion->orden->Fecha ?? $movi->FechaCreacion;
-      }else{
-        $fechaOr=$movi->contenedor->ordprodpre->orden->Fecha ?? $movi->FechaCreacion;
-      }
+
+    if($movi->ordenProductoPresentacion){
+      $fechaOr=$movi->ordenProductoPresentacion->orden->Fecha;
+    }else{
+      $fechaOr=$movi->contenedor->ordprodpre->orden->Fecha;
+    }
+    if ($ordenes->Fecha >= $fechaOr) {
         switch ($movi->MovimientosTipos) {
             case 2:
             case 3:
@@ -200,9 +200,7 @@
                 break;
 
             case 8:
-            if($fechaOr <= $f ){
                 $sumsal += $movi->Cantidad;
-              }
                 break;
         }
     }

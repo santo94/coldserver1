@@ -85,5 +85,10 @@ class Movimientos extends Model
         return $this->belongsTo(Contenedores::class, 'Contenedores', 'OID');
     }
 
+    public function usuariom()
+    {
+        return $this->hasOne(Usuario::class,'Oid','UsuarioCrea');
+    }
+
    
 }

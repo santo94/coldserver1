@@ -104,6 +104,7 @@ class EmpresasController extends Controller
     {
 
         if($_POST){
+            
 
             $ordinput="";
             if(isset($_POST["contenedor_oid"]) && !empty($_POST["contenedor_oid"])){
@@ -137,30 +138,331 @@ class EmpresasController extends Controller
             $fecha1=Carbon::parse($request->inicio)->format('Y-m-d H:i:s');
             $fecha2=Carbon::parse($request->fin)->format('Y-m-d H:i:s');
            
-            $ordenesEntrada=Orden::where("OrdenesTipos",2)->whereBetween('fecha', [$fecha1 ,$fecha2])->get();
+            $ordenesEntrada=Orden::where([["OrdenesTipos",2],["OidCliente", $request->cliente]])->whereBetween('fecha', [$fecha1 ,$fecha2])->get();
         $ordenempresas=$ordenesEntrada;
-      
+        
         $clientes = $ordenesEntrada->pluck('proveedor.Nombre')->unique()->sort();
         $filtro=1;
+      $mov=$ordenesEntrada[0]->productosPresententaciones[0]->contenedor->movimientos;
+        $sumen=0;
+        $sumsal=0;
+      foreach ($mov as $movi) {
+        if($movi->FechaCreacion <= $fecha2){
+          if($movi->MovimientosTipos ==1){
+            $sumen += $movi->Cantidad;
+          }else{
+            if($movi->MovimientosTipos==8){
+                $sumsal += $movi->Cantidad;
+            }
+          }
+      }
+  }
+  $existencia=$sumen-$sumsal;
+
+  //dd("entradas: " .$sumen . " salidas: " . $sumsal ."Existencia" . $existencia. "Contenedor". $mov[0]->Contenedores);
+
         return view('tabla2',compact('ordenesEntrada','clientes','filtro','fecha1','fecha2','ordinput'));
         }else{
-        // $contenedores = Contenedores::with(['lote', 'movimientos.movimientoTipo'])->take(10)->get();
+         $clientesT=Empresa::where("EmpresasTipos",1)->get();
         
-        return view('tabla2');
+        return view('tabla2',compact('clientesT'));
     }
     }
 
-    public function almacenamiento(Request $request){
+    public function almacenamientoi(Request $request)
+    {
 
-        $filtro=1;
+        if($_SERVER['REQUEST_METHOD'] === 'POST'){
+           // dd($_POST);
+            if($_POST["cliente"] !=""){
+                if($_POST["orden"] !=""){
+                    $paginatel="no";
+                    $empresaId = $request->cliente;
+                    $codigoOrden = $request->orden; // input para buscar por orden
+                    $fechaInici=$request->inicio;
+                    $fechaFin=$request->fin;
+
+                    $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ProdUbicExis', function($q) {
+                            $q->where('CantidadExistente', '>', 0);
+                        })
+                        ->whereHas('productosPresententaciones.movimientoEntrada.contenedor.sscc_ep', function($q) use ($empresaId) {
+                            if ($empresaId) {
+                                $q->where('OidEmpresa', $empresaId);
+                            }
+                        })
+                        // Filtro por código de orden (si se proporciona)
+                        ->when($codigoOrden, function($query) use ($codigoOrden) {
+                            $query->where('Codigo', 'like', "%{$codigoOrden}%");
+                        })
+                        ->get();
+                }else{
+                    $empresaId = $request->cliente; // ID de la empresa que quieres filtrar
+
+                    $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ProdUbicExis', function($q) {
+                        $q->where('CantidadExistente', '>', 0);
+                    })
+                    ->whereHas('productosPresententaciones.movimientoEntrada.contenedor.sscc_ep', function($q) use ($empresaId) {
+                        $q->where('OidEmpresa', $empresaId);
+                    })
+                    ->get();
+
+                    $paginatel="no";
+
+                }
+
+            }else{
+
+                if($_POST["orden"] != ""){
+                    $paginatel="no";
+                    $codigoOrden = $request->orden; // input para buscar por orden
+
+                    $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ProdUbicExis', function($q) {
+                            $q->where('CantidadExistente', '>', 0);
+                        })
+                        // Filtro por código de orden (si se proporciona)
+                        ->when($codigoOrden, function($query) use ($codigoOrden) {
+                            $query->where('Codigo', 'like', "%{$codigoOrden}%");
+                        })
+                        ->get();
+                }else{
+                    
+                            
+                            
+                    return redirect()->back()->with('warning', 'No se pudo actualizar la tabla, no se encontro el dato solicitado');
+                }
+            }
+        }
+
         
-        $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ProdUbicExis', function($q) {
+        else{
+            $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico', function($q) {
     $q->where('CantidadExistente', '>', 0);
 })->paginate(10);
-        $clientes = $ordenesEntrada->pluck('proveedor.Nombre')->unique()->sort();
+            $paginatel="si";
+        
         $fecha1=date('Y-m-d');
 
-       return view('tabla3',compact('ordenesEntrada','clientes','filtro'));
+        }
+        $filtro=1;
+        $cliente=Empresa::where("EmpresasTipos",2)->get();
+}
+        
+
+public function almacenamiento1(Request $request){
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_POST["cliente"] != "") {
+        if ($_POST["orden"] != "") {
+            $paginatel = "no";
+            $empresaId   = $request->cliente;
+            $codigoOrden = $request->orden; // input para buscar por orden
+            $fechaInici = Carbon::parse($request->inicio)->format('Y-m-d H:i:s');
+            $fechaFin   = Carbon::parse($request->fin)->format('Y-m-d H:i:s'); 
+
+
+          $ordenesEntrada = Contenedores::with([
+        'sscc_ep.empresasc',
+        'movimientoEntrada.ordenProductoPresentacion.ProdPre.unidadMedida',
+        'movimientoEntrada.ordenProductoPresentacion.orden',
+        'movimientos' => function($q) use ($fechaFin) {
+            $q->where('FechaCreacion', '<=', $fechaFin);
+        }
+    ])
+    ->whereHas('sscc_ep.empresasc', fn($q) => $q->where('OidEmpresa', $empresaId))
+    ->withSum(['movimientos as total_entradas' => fn($q) => $q->where('MovimientosTipos', 1)->where('FechaCreacion', '<=', $fechaFin)], 'Cantidad')
+    ->withSum(['movimientos as total_salidas' => fn($q) => $q->where('MovimientosTipos', 8)->where('FechaCreacion', '<=', $fechaFin)], 'Cantidad')
+    ->get()
+    ->map(fn($contenedor) => tap($contenedor, fn($c) => $c->existencia = ($c->total_entradas ?? 0) - ($c->total_salidas ?? 0)))
+    ->filter(fn($contenedor) => $contenedor->existencia > 0);
+
+        } else {
+            $empresaId = $request->cliente; 
+            $fechaInici = Carbon::parse($request->inicio)->format('Y-m-d H:i:s');
+            $fechaFin   = Carbon::parse($request->fin)->format('Y-m-d H:i:s');
+
+               $ordenesEntrada = Contenedores::with([
+        'sscc_ep.empresasc',
+        'movimientoEntrada.ordenProductoPresentacion.ProdPre.unidadMedida',
+        'movimientoEntrada.ordenProductoPresentacion.orden',
+        'movimientos' => function($q) use ($fechaFin) {
+            $q->where('FechaCreacion', '<=', $fechaFin);
+        }
+    ])
+    ->whereHas('sscc_ep.empresasc', fn($q) => $q->where('OidEmpresa', $empresaId))
+    ->withSum(['movimientos as total_entradas' => fn($q) => $q->where('MovimientosTipos', 1)->where('FechaCreacion', '<=', $fechaFin)], 'Cantidad')
+    ->withSum(['movimientos as total_salidas' => fn($q) => $q->where('MovimientosTipos', 8)->where('FechaCreacion', '<=', $fechaFin)], 'Cantidad')
+    ->get()
+    ->map(fn($contenedor) => tap($contenedor, fn($c) => $c->existencia = ($c->total_entradas ?? 0) - ($c->total_salidas ?? 0)))
+    ->filter(fn($contenedor) => $contenedor->existencia > 0);
+  
+
+            $paginatel = "no";
+        }
+
+    } else {
+        if ($_POST["orden"] != "") {
+            $paginatel = "no";
+            $codigoOrden = $request->orden;
+            $fechaInici = Carbon::parse($request->inicio)->format('Y-m-d H:i:s');
+            $fechaFin   = Carbon::parse($request->fin)->format('Y-m-d H:i:s'); 
+
+            $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico', function($q) use ($fechaInici, $fechaFin) {
+                    $q->where('CantidadExistente', '>', 0)
+                      ->whereBetween('FechaInsercionDatosHistorico', [$fechaInici, $fechaFin]);
+                })
+                ->when($codigoOrden, function($q) use ($codigoOrden) {
+                    $q->where('Codigo', 'like', "%{$codigoOrden}%");
+                })
+                ->with([
+                    'cliente',
+                    'productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico',
+                    'productosPresententaciones.ProdPre'
+                ])
+                ->get();
+
+        } else {
+            return redirect()->back()->with('warning', 'No se pudo actualizar la tabla, no se encontro el dato solicitado');
+        }
+    }
+
+   // dd($ordenesEntrada[0]->productosPresententaciones[0]->movimientos[0]->contenedor->ultimaExistenciaHistorico);
+   
+    $filtro=1;
+
+    $cliente=Empresa::where("EmpresasTipos",2)->get();
+    return view('tabla3',compact('ordenesEntrada','filtro','cliente','paginatel' ,'fechaInici','fechaFin'));
+}
+
+ 
+        
+        else{
+            $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ProdUbicExis', function($q) {
+    $q->where('CantidadExistente', '>', 0);
+})->paginate(10);
+            $paginatel="si";
+       
+       
+        }
+        $fecha1=date('Y-m-d');
+
+
+        
+
+        //dd($ordenesEntrada);
+        $filtro=1;
+        $cliente=Empresa::where("EmpresasTipos",2)->get();
+        
+        
+       return view('tabla3',compact('ordenesEntrada','filtro','cliente','paginatel','fecha1' ));
+
+
+}
+
+    
+public function almacenamiento(Request $request){
+    if ($_POST) {
+    if ($_POST["cliente"] != "") {
+        if ($_POST["orden"] != "") {
+            $paginatel = "no";
+            $empresaId   = $request->cliente;
+            $codigoOrden = $request->orden; // input para buscar por orden
+            $fechaInici = Carbon::parse($request->inicio)->format('Y-m-d H:i:s');
+            $fechaFin   = Carbon::parse($request->fin)->format('Y-m-d H:i:s'); 
+
+            $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico', function($q) use ($fechaInici, $fechaFin) {
+                    $q->where('CantidadExistente', '>', 0)
+                      ->whereBetween('FechaInsercionDatosHistorico', [$fechaInici, $fechaFin]);
+                })
+                ->whereHas('productosPresententaciones.movimientoEntrada.contenedor.sscc_ep', function($q) use ($empresaId) {
+                    if ($empresaId) {
+                        $q->where('OidEmpresa', $empresaId);
+                    }
+                })
+                ->when($codigoOrden, function($query) use ($codigoOrden) {
+                    $query->where('Codigo', 'like', "%{$codigoOrden}%");
+                })
+                ->with([
+                    'productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico'
+                ])
+                ->get();
+
+        } else {
+            $empresaId = $request->cliente; 
+            $fechaInici = Carbon::parse($request->inicio)->format('Y-m-d H:i:s');
+            $fechaFin   = Carbon::parse($request->fin)->format('Y-m-d H:i:s');
+
+            $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico', function($q) use ($fechaInici, $fechaFin) {
+                    $q->where('CantidadExistente', '>', 0)
+                      ->whereBetween('FechaInsercionDatosHistorico', [$fechaInici, $fechaFin]);
+                })
+                ->whereHas('productosPresententaciones.movimientoEntrada.contenedor.sscc_ep', function($q) use ($empresaId) {
+                    $q->where('OidEmpresa', $empresaId);
+                })
+                ->with([
+                    'productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico'
+                ])
+                ->get();
+
+            $paginatel = "no";
+        }
+
+    } else {
+        if ($_POST["orden"] != "") {
+            $paginatel = "no";
+            $codigoOrden = $request->orden;
+            $fechaInici = Carbon::parse($request->inicio)->format('Y-m-d H:i:s');
+            $fechaFin   = Carbon::parse($request->fin)->format('Y-m-d H:i:s'); 
+
+            $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico', function($q) use ($fechaInici, $fechaFin) {
+                    $q->where('CantidadExistente', '>', 0)
+                      ->whereBetween('FechaInsercionDatosHistorico', [$fechaInici, $fechaFin]);
+                })
+                ->when($codigoOrden, function($query) use ($codigoOrden) {
+                    $query->where('Codigo', 'like', "%{$codigoOrden}%");
+                })
+                ->with([
+                    'productosPresententaciones.movimientoEntrada.contenedor.ultimaExistenciaHistorico'
+                ])
+                ->get();
+
+        } else {
+            return redirect()->back()->with('warning', 'No se pudo actualizar la tabla, no se encontro el dato solicitado');
+        }
+    }
+
+   // dd($ordenesEntrada[0]->productosPresententaciones[0]->movimientos[0]->contenedor->ultimaExistenciaHistorico);
+    $filtro=1;
+    $cliente=Empresa::where("EmpresasTipos",2)->get();
+    return view('tabla3',compact('ordenesEntrada','filtro','cliente','paginatel' ,'fechaInici','fechaFin'));
+}
+
+ 
+        
+        else{
+            $ordenesEntrada = Orden::whereHas('productosPresententaciones.movimientoEntrada.contenedor.ProdUbicExis', function($q) {
+    $q->where('CantidadExistente', '>', 0);
+})->paginate(10);
+            $paginatel="si";
+
+
+            if($_POST){
+                $fecha1=$fechaFin ;
+
+            }else{
+             $fecha1=date('Y-m-d');   
+            }
+        
+        
+
+
+        }
+
+        //dd($ordenesEntrada);
+        $filtro=1;
+        $cliente=Empresa::where("EmpresasTipos",2)->get();
+        
+
+       return view('tabla3',compact('ordenesEntrada','filtro','cliente','paginatel','fecha1' ));
     }
 
     public function cargar(Request $request)
@@ -217,7 +519,7 @@ class EmpresasController extends Controller
     {
 
         $contenedor=Contenedores::where("SSCC",$request->sscc)->first();
-       
+        
         return view('movimientosb',compact('contenedor'));
 
     }

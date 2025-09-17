@@ -182,13 +182,13 @@
     }
 
    foreach ($mov as $movi) {
-    $f=$ordenes->Fecha ?? $movi->FechaCreacion;
-    if ($f <= $fecha2) {
-      if($movi->ordenProductoPresentacion){
+
+    if($movi->ordenProductoPresentacion){
       $fechaOr=$movi->ordenProductoPresentacion->orden->Fecha ?? $movi->FechaCreacion;
-      }else{
-        $fechaOr=$movi->contenedor->ordprodpre->orden->Fecha ?? $movi->FechaCreacion;
-      }
+    }else{
+      $fechaOr=$movi->contenedor->ordprodpre->orden->Fecha ?? $movi->FechaCreacion;
+    }
+    if ($ordenes->Fecha <= $fechaOr) {
         switch ($movi->MovimientosTipos) {
             case 2:
             case 3:
@@ -200,9 +200,7 @@
                 break;
 
             case 8:
-            if($fechaOr <= $f ){
                 $sumsal += $movi->Cantidad;
-              }
                 break;
         }
     }
@@ -235,7 +233,7 @@
 
               </td>
               <td>{{ optional($prodpre->contenedor->datos)->altura }}</td>
-              <td>{{ optional($prodpre->contenedor->datos)->tipo }}</td>
+              <td>{{ optional($prodpre->contenedor->datos)->tipo }} {{$fechaOr}} {{$ordenes->Fecha}}</td>
               <td class="text-center">
                 @php
                   $bs = $prodpre->MovimientoEntrada
