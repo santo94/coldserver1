@@ -1336,11 +1336,23 @@ Route::get('/contenedor/{id}/completo', function ($id) {
     }
 });
 
+
+
+
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 Route::get('/empresas', [App\Http\Controllers\EmpresasController::class, 'index'])->name('home');
+
+// Rutas para la interfaz Handheld
+Route::prefix('handheld')->group(function () {
+    Route::get('/ordenes-activas', [App\Http\Controllers\OrdenController::class, 'ordenesActivas'])->name('ordenes.activas');
+    Route::get('/orden/{id}/detalle', [App\Http\Controllers\OrdenController::class, 'detalleOrden'])->name('orden.detalle');
+    Route::get('/api/ordenes-activas', [App\Http\Controllers\OrdenController::class, 'apiOrdenesActivas'])->name('api.ordenes.activas');
+    Route::post('/guardar-recoleccion', [App\Http\Controllers\OrdenController::class, 'guardarRecoleccion'])->name('guardar.recoleccion');
+    Route::post('/cerrar-orden', [App\Http\Controllers\OrdenController::class, 'cerrarOrden'])->name('cerrar.orden');
+});
 
 Auth::routes();
 

@@ -24,7 +24,9 @@ class Orden extends Model
     /**
      * Los atributos que se pueden asignar masivamente (solo lectura).
      */
-    protected $fillable = [];
+    protected $fillable = [
+        'Estatus',
+    ];
     
     /**
      * Los atributos que deben ser protegidos de asignación masiva.
@@ -95,10 +97,11 @@ class Orden extends Model
      */
 
     // Esta orden pertenece a otra orden (la de servicio)
-public function ordenDeServicio()
-{
-    return $this->belongsTo(Orden::class, 'CodigoRastreo', 'Codigo');
-}
+    public function ordenDeServicio()
+    {
+        return $this->belongsTo(Orden::class, 'CodigoRastreo', 'Codigo');
+    }
+
     public function ordenesServicios()
     {
         return $this->hasMany(OrdenesServicios::class, 'OIDOrden', 'OID');

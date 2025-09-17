@@ -39,4 +39,13 @@ class UnidadesMedidas extends Model
     {
         return $this->hasMany(ProductosPresentaciones::class, 'UnidadesMedidas', 'OID');
     }
+    
+    /**
+     * Relación uno a muchos con OrdenProductoPresentacion.
+     * Una unidad de medida puede ser usada en muchas órdenes de productos.
+     */
+    public function ordenesProductosPresentaciones()
+    {
+        return $this->hasMany(OrdenProductoPresentacion::class, 'UnidadesMedidas', 'OID');
+    }
 }

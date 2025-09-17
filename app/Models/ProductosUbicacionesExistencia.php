@@ -24,7 +24,16 @@ class ProductosUbicacionesExistencia extends Model
     /**
      * Los atributos que se pueden asignar masivamente (solo lectura).
      */
-    protected $fillable = [];
+    protected $fillable = [
+        'CantidadExistente',
+        'FechaIngreso',
+        'Notas',
+        'ProductosPresentaciones',
+        'Ubicaciones',
+        'Lotes',
+        'ContenedorOid',
+        'Estatus',
+    ];
     
     /**
      * Los atributos que deben ser protegidos de asignación masiva.

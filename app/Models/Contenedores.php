@@ -24,7 +24,25 @@ class Contenedores extends Model
     /**
      * Los atributos que se pueden asignar masivamente (solo lectura).
      */
-    protected $fillable = [];
+    protected $fillable = [
+        'OID',
+        'Codigo',
+        'Estatus',
+        'Tipo',
+        'Oid_Padre',
+        'Consecutivo',
+        'LotesContenedores',
+        'FechaProduccion',
+        'FechaRecepcion',
+        'Batch',
+        'SSCC',
+        'LoteProveedor',
+        'Descripcion',
+        'OptimisticLockField',
+        'GCRecord',
+        'Altura',
+        'Temperatura',
+    ];
     
     /**
      * Los atributos que deben ser protegidos de asignación masiva.
