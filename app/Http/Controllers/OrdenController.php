@@ -165,7 +165,7 @@ class OrdenController extends Controller
             $contenedor = Contenedores::create([
                 'Consecutivo' => $nuevoConsecutivo,
                 'Tipo' => 0,
-                'Estatus' => 1,
+                'Estatus' => 0,
                 'Oid_Padre' => null,
                 'LotesContenedores' => $lote->OID,
                 'FechaProduccion' => $fechaProduccion,
