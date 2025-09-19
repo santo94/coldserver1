@@ -1352,6 +1352,11 @@ Route::prefix('handheld')->group(function () {
     Route::get('/api/ordenes-activas', [App\Http\Controllers\OrdenController::class, 'apiOrdenesActivas'])->name('api.ordenes.activas');
     Route::post('/guardar-recoleccion', [App\Http\Controllers\OrdenController::class, 'guardarRecoleccion'])->name('guardar.recoleccion');
     Route::post('/cerrar-orden', [App\Http\Controllers\OrdenController::class, 'cerrarOrden'])->name('cerrar.orden');
+    // Rutas para imprimir etiquetas
+    Route::get('/ordenes-imprimir', [App\Http\Controllers\OrdenController::class, 'ordenesParaImprimir'])->name('ordenes.imprimir');
+    Route::get('/orden/{id}/etiquetas', [App\Http\Controllers\OrdenController::class, 'generarEtiquetasPallet'])->name('generar.etiquetas');
+    // Ruta temporal para debuggear
+    Route::get('/test-orden-proveedor/{producto_id?}', [App\Http\Controllers\OrdenController::class, 'testOrdenProveedor'])->name('test.orden.proveedor');
 });
 
 Auth::routes();
