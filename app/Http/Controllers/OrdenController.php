@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use App\Models\Orden;
 use App\Models\Lotes;
 use App\Models\Contenedores;
@@ -15,8 +16,20 @@ use Carbon\Carbon;
 class OrdenController extends Controller
 {
     /**
-     * Mostrar órdenes activas para handheld
-     * Estatus en Ordenes
+     * Mostrar órdenes activas pa            // Datos para la etiqueta
+            $datosEtiqueta = [
+                'sku' => $producto->ProdPre->Codigo ?? 'SKU-000',
+                'producto' => $producto->ProdPre->Nombre ?? 'Producto sin nombre',
+                'contador' => $contador,
+                'total' => $totalEtiquetas,
+                'fecha' => \Carbon\Carbon::parse($movimiento->FechaCreacion)->format('d/m/Y'),
+                'cantidad' => $movimiento->Cantidad,
+                'peso' => $movimiento->Cantidad, // Asumir que cantidad = peso por ahora
+                'um' => $producto->unidadMedida->Nombre ?? 'UNIDAD',
+                'um_abreviatura' => $producto->unidadMedida->Abreviatura ?? 'UND',
+                'sscc' => $contenedor->SSCC,
+                'cliente' => $orden->cliente->Nombre ?? $orden->cliente->RazonSocial ?? 'Cliente no disponible',
+                'qr_data' => $qrData,     * Estatus en Ordenes
      *   0 es cerrado
      *   2 es parcial (entrada parcial - no concluida)
      *   1 es activa
@@ -165,7 +178,7 @@ class OrdenController extends Controller
             $contenedor = Contenedores::create([
                 'Consecutivo' => $nuevoConsecutivo,
                 'Tipo' => 0,
-                'Estatus' => 1,
+                'Estatus' => 0,
                 'Oid_Padre' => null,
                 'LotesContenedores' => $lote->OID,
                 'FechaProduccion' => $fechaProduccion,
@@ -260,6 +273,332 @@ class OrdenController extends Controller
                 'status' => 'error',
                 'message' => 'Error al cerrar la orden: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Mostrar órdenes para imprimir etiquetas con conteo de productos
+     */
+    public function ordenesParaImprimir()
+    {
+        try {
+            // Consultar órdenes para imprimir etiquetas (sin filtro de estatus)
+            // Solo las primeras 100 ordenadas por fecha de recepción más reciente
+            $ordenes = Orden::with([
+                'ordenTipo', 
+                'detalle', 
+                'cliente',
+                'productosPresententaciones' => function($query) {
+                    $query->with(['movimientos', 'ProdPre']);
+                }
+            ])
+                ->where('OrdenesTipos', 1) 
+                ->orderBy('fecha', 'desc') // Más reciente primero
+                ->limit(100) // Límite de 100 órdenes
+                ->get();
+            
+            // Calcular estadísticas de cada orden
+            $ordenesConEstadisticas = $ordenes->map(function($orden) {
+                $totalProductosSolicitados = $orden->productosPresententaciones->count();
+                $totalCantidadSolicitada = $orden->productosPresententaciones->sum('Cantidad');
+                
+                // Contar productos que ya tienen movimientos (fueron capturados)
+                $productosCapturados = $orden->productosPresententaciones->filter(function($producto) {
+                    return $producto->movimientos && $producto->movimientos->count() > 0;
+                })->count();
+                
+                // Calcular cantidad total recolectada
+                $cantidadRecolectada = $orden->productosPresententaciones->reduce(function($total, $producto) {
+                    if ($producto->movimientos && $producto->movimientos->count() > 0) {
+                        return $total + $producto->movimientos->sum('Cantidad');
+                    }
+                    return $total;
+                }, 0);
+                
+                // Determinar si tiene etiquetas generadas
+                $tieneEtiquetas = $orden->productosPresententaciones->some(function($producto) {
+                    return $producto->movimientos && $producto->movimientos->count() > 0;
+                });
+                
+                // Calcular porcentaje de completitud
+                $porcentajeProductos = $totalProductosSolicitados > 0 ? 
+                    round(($productosCapturados / $totalProductosSolicitados) * 100) : 0;
+                
+                $porcentajeCantidad = $totalCantidadSolicitada > 0 ? 
+                    round(($cantidadRecolectada / $totalCantidadSolicitada) * 100) : 0;
+                
+                // Añadir propiedades calculadas al objeto orden
+                $orden->productos_capturados = $productosCapturados;
+                $orden->productos_solicitados = $totalProductosSolicitados;
+                $orden->cantidad_recolectada = $cantidadRecolectada;
+                $orden->cantidad_solicitada = $totalCantidadSolicitada;
+                $orden->tiene_etiquetas = $tieneEtiquetas;
+                $orden->porcentaje_productos = $porcentajeProductos;
+                $orden->porcentaje_cantidad = $porcentajeCantidad;
+                $orden->texto_progreso = "{$productosCapturados} de {$totalProductosSolicitados} productos";
+                $orden->texto_cantidad = number_format($cantidadRecolectada, 2) . " de " . number_format($totalCantidadSolicitada, 2);
+                
+                return $orden;
+            });
+            
+            return view('handheld.ordenes-imprimir', compact('ordenesConEstadisticas'));
+            
+        } catch (\Exception $e) {
+            return view('handheld.ordenes-imprimir', [
+                'ordenesConEstadisticas' => collect(),
+                'error' => 'Error al cargar las órdenes: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+
+    /**
+     * Generar etiquetas para pallets de una orden
+     */
+    public function generarEtiquetasPallet($id)
+    {
+        $orden = Orden::with([
+            'cliente',
+            'detalle',
+            'productosPresententaciones.ProdPre',
+            'productosPresententaciones.movimientos.lote',
+            'productosPresententaciones.movimientos.contenedor',
+            'productosPresententaciones.unidadMedida'
+        ])->findOrFail($id);
+
+        // Preparar datos para etiquetas
+        $datosEtiquetas = $this->prepararDatosEtiquetas($orden);
+
+        // Configurar TCPDF para etiquetas 4x6" (152.4 x 101.6 mm) en orientación horizontal (Landscape)
+        $pdf = new \App\Pdf\CustomTCPDF('L', 'mm', array(152.4, 101.6), true, 'UTF-8', false);
+        $pdf->SetCreator('Sistema de Etiquetas SSCC');
+        $pdf->SetAuthor('Coldtainer');
+        $pdf->SetTitle('Etiquetas SSCC - ' . $orden->Codigo);
+
+        // Sin headers ni footers para etiquetas
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        
+        // Márgenes mínimos para etiquetas
+        $pdf->SetMargins(3, 3, 3);
+        $pdf->SetAutoPageBreak(false); // Sin salto automático para etiquetas
+
+        foreach ($datosEtiquetas['etiquetas'] as $etiqueta) {
+            $pdf->AddPage();
+            
+            // Generar HTML para esta etiqueta específica
+            $htmlEtiqueta = view('templates.etiqueta_individual', compact('etiqueta'))->render();
+            
+            $pdf->writeHTML($htmlEtiqueta, true, false, true, false, '');
+        }
+
+        // Devolver el PDF de etiquetas
+        return $pdf->Output('etiquetas_sscc_' . $orden->Codigo . '.pdf', 'I');
+    }
+
+    /**
+     * Preparar datos para las etiquetas de pallets
+     */
+    private function prepararDatosEtiquetas($orden)
+    {
+        $etiquetas = [];
+        $contador = 1;
+        
+        // Obtener todos los contenedores generados para esta orden
+        $contenedores = collect();
+        
+        foreach ($orden->productosPresententaciones as $producto) {
+            // Solo productos que ya fueron procesados (tienen movimientos)
+            if ($producto->movimientos && $producto->movimientos->count() > 0) {
+                foreach ($producto->movimientos as $movimiento) {
+                    if ($movimiento->contenedor) {
+                        $contenedores->push([
+                            'producto' => $producto,
+                            'movimiento' => $movimiento,
+                            'contenedor' => $movimiento->contenedor,
+                            'lote' => $movimiento->lote
+                        ]);
+                    }
+                }
+            }
+        }
+        
+        $totalEtiquetas = $contenedores->count();
+        
+        foreach ($contenedores as $item) {
+            $producto = $item['producto'];
+            $movimiento = $item['movimiento'];
+            $contenedor = $item['contenedor'];
+            $lote = $item['lote'];
+            
+            // Datos para QR
+            $qrData = $this->generarDatosQR([
+                'sku' => $producto->ProdPre->Codigo ?? 'N/A',
+                'lote' => $lote->Lote ?? 'N/A',
+                //'fecha' => \Carbon\Carbon::parse($movimiento->FechaCreacion)->format('d/m/Y'),
+                'cantidad' => $movimiento->Cantidad,
+                'codigo' => $contenedor->Codigo ?? 'N/A',
+                'batch' => $contenedor->Batch ?? 'N/A',
+                'sscc' => $contenedor->SSCC
+            ]);
+            
+            $etiquetas[] = $this->crearDatosEtiqueta([
+                'sku' => $producto->ProdPre->Codigo ?? 'N/A',
+                'producto' => $producto->ProdPre->Nombre ?? 'Producto sin nombre',
+                'contador' => $contador,
+                'total' => $totalEtiquetas,
+                'fecha' => \Carbon\Carbon::parse($movimiento->FechaCreacion)->format('d/m/Y'),
+                'cantidad' => $movimiento->Cantidad,
+                'peso' => $movimiento->Cantidad, // Asumir que cantidad = peso por ahora
+                'um' => $producto->unidadMedida->Nombre ?? 'UNIDAD',
+                'um_abreviatura' => $producto->unidadMedida->Abreviatura ?? 'UND',
+                'sscc' => $contenedor->SSCC,
+                'cliente' => $orden->cliente->Nombre ?? $orden->cliente->RazonSocial ?? 'Cliente no disponible',
+                'qr_data' => $qrData,
+                'tipo' => 'SSCC',
+                'batch' => $contenedor->Batch,
+                'lote' => $lote->Lote ?? 'N/A'
+            ]);
+            
+            $contador++;
+        }
+        
+        return [
+            'orden' => $orden,
+            'etiquetas' => $etiquetas,
+            'total_etiquetas' => count($etiquetas),
+        ];
+    }
+
+        /**
+     * Crear datos estructurados para una etiqueta
+     */
+    private function crearDatosEtiqueta($datos)
+    {
+        return [
+            'sku' => $datos['sku'],
+            'producto' => $datos['producto'],
+            'contador_texto' => $datos['contador'] . ' de ' . $datos['total'],
+            'fecha' => $datos['fecha'],
+            'cantidad_texto' => $datos['cantidad'] . ' CAJAS' ,
+            'peso' => $datos['peso'] ?? 0,
+            'um_nombre' => $datos['um'] ?? 'CAJAS',
+            'um_abreviatura' => $datos['um_abreviatura'] ?? 'CAJAS',
+            'sscc' => $datos['sscc'],
+            'cliente' => Str::limit($datos['cliente'], 50),
+            'qr_data' => $datos['qr_data'],
+            'qr_image' => $this->generarCodigoQR($datos['qr_data']),
+            'tipo' => $datos['tipo'],
+        ];
+    }
+
+    /**
+     * Generar string de datos para el código QR
+     */
+    private function generarDatosQR($datos)
+    {
+        // Formato: SKU|fecha|cantidad|mixto|batch|lote|sscc
+        $campos = [
+            $datos['sku'],
+            $datos['lote'],
+            $datos['cantidad'],
+            $datos['codigo'],
+            $datos['batch'],
+            $datos['sscc'],
+        ];
+
+        return implode('|', $campos);
+    }
+
+    /**
+     * Generar imagen del código QR usando endroid/qr-code v6
+     */
+    private function generarCodigoQR($data)
+    {
+        // En v6.x, QrCode es readonly y se configura en el constructor
+        $qrCode = new \Endroid\QrCode\QrCode(
+            data: $data,
+            size: 120,
+            margin: 5
+        );
+        
+        $writer = new \Endroid\QrCode\Writer\PngWriter();
+        $result = $writer->write($qrCode);
+
+        // Convertir a base64 para incluir en HTML
+        return 'data:image/png;base64,' . base64_encode($result->getString());
+    }
+
+    /**
+     * Generar código de barras usando picqer/php-barcode-generator
+     */
+    private function generarCodigoBarras($sscc)
+    {
+        $generator = new \Picqer\Barcode\BarcodeGeneratorPNG();
+        
+        // Usar CODE128 que es ideal para códigos alfanuméricos como SSCC
+        $barcodeData = $generator->getBarcode($sscc, $generator::TYPE_CODE_128, 2, 40);
+        
+        // Convertir a base64 para incluir en HTML
+        return 'data:image/png;base64,' . base64_encode($barcodeData);
+    }
+
+    /**
+     * Método temporal para debuggear el problema con OidProveedor
+     */
+    public function testOrdenProveedor($producto_id = 51213)
+    {
+        try {
+            echo "=== DEBUG TEST ORDEN PROVEEDOR ===\n";
+            echo "Producto ID: " . $producto_id . "\n";
+            
+            // Obtener el producto de la orden con todas las relaciones
+            $ordenProducto = OrdenProductoPresentacion::with(['ProdPre.unidadMedida', 'orden'])->find($producto_id);
+            
+            if (!$ordenProducto) {
+                echo "❌ ERROR: No se encontró el OrdenProductoPresentacion con ID: " . $producto_id . "\n";
+                return;
+            }
+            
+            echo "✅ OrdenProductoPresentacion encontrado:\n";
+            echo "- OID: " . $ordenProducto->OID . "\n";
+            echo "- Cantidad: " . $ordenProducto->Cantidad . "\n";
+            echo "- Ordenes (FK): " . $ordenProducto->Ordenes . "\n";
+            
+            // Verificar la orden relacionada
+            $orden = $ordenProducto->orden;
+            
+            if (!$orden) {
+                echo "❌ ERROR: No se encontró la Orden relacionada\n";
+                echo "Verificando FK 'Ordenes': " . $ordenProducto->Ordenes . "\n";
+                
+                // Intentar buscar la orden directamente
+                $ordenDirecta = \App\Models\Orden::find($ordenProducto->Ordenes);
+                if ($ordenDirecta) {
+                    echo "✅ Orden encontrada directamente con ID: " . $ordenDirecta->OID . "\n";
+                    echo "- OidProveedor: " . ($ordenDirecta->OidProveedor ?? 'NULL') . "\n";
+                    echo "- OidCliente: " . ($ordenDirecta->OidCliente ?? 'NULL') . "\n";
+                } else {
+                    echo "❌ Orden no encontrada ni directamente\n";
+                }
+                return;
+            }
+            
+            echo "✅ Orden relacionada encontrada:\n";
+            echo "- OID: " . $orden->OID . "\n";
+            echo "- OidProveedor: " . ($orden->OidProveedor ?? 'NULL') . "\n";
+            echo "- OidCliente: " . ($orden->OidCliente ?? 'NULL') . "\n";
+            echo "- Estatus: " . $orden->Estatus . "\n";
+            
+            // Mostrar todos los atributos de la orden
+            echo "\n--- TODOS LOS CAMPOS DE LA ORDEN ---\n";
+            foreach ($orden->getAttributes() as $campo => $valor) {
+                echo "- " . $campo . ": " . ($valor ?? 'NULL') . "\n";
+            }
+            
+        } catch (\Exception $e) {
+            echo "❌ ERROR: " . $e->getMessage() . "\n";
+            echo "Trace: " . $e->getTraceAsString() . "\n";
         }
     }
 }

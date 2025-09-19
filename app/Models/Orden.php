@@ -81,7 +81,19 @@ class Orden extends Model
             'OID'
         );
     }
+    // Relación correcta: Una orden pertenece a un cliente
+    public function cliente()
+    {
+        return $this->belongsTo(Empresas::class, 'OidProveedor', 'OID');
+    }
 
+    // Relación correcta: Una orden pertenece a un proveedor  
+    public function proveedor()
+    {
+        return $this->belongsTo(Empresas::class, 'OidCliente', 'OID');
+    }
+
+    /*
     public function cliente()
     {
         return $this->hasOne(Empresas::class,'OID','OidProveedor');
@@ -90,7 +102,7 @@ class Orden extends Model
     public function proveedor()
     {
         return $this->hasOne(Empresas::class,'OID','OidCliente');
-    }
+    }*/
     
     /**
      * Relación directa con OrdenesServicios para acceso a la tabla pivote.

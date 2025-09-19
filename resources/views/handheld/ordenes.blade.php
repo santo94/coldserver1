@@ -182,6 +182,18 @@
         </button>
     </form>
 
+    <!-- Navegación -->
+    <div class="container" style="padding-top: 15px;">
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <a href="{{ route('ordenes.activas') }}" class="btn" style="background: #3498db; flex: 1;">
+                Órdenes Activas
+            </a>
+            <a href="{{ route('ordenes.imprimir') }}" class="btn" style="background: #27ae60; flex: 1;">
+                Imprimir Etiquetas
+            </a>
+        </div>
+    </div>
+
     <div class="container">
         @if(isset($error))
             <div class="error">
@@ -208,7 +220,7 @@
                         @endif
                     </div>
                     
-                    <a href="{{ route('orden.detalle', $orden->OID) }}" class="btn">
+                    <a href="{{ route('orden.detalle', $orden->OID) }}" class="btn btn-detalle">
                         👁️ Ver Detalle
                     </a>
                 </div>
@@ -235,20 +247,20 @@
             window.location.reload();
         }, 300000);
         
-        // Función para resetear botones
-        function resetearBotones() {
-            document.querySelectorAll('.btn').forEach(function(btn) {
+        // Función para resetear solo los botones de detalle de órdenes
+        function resetearBotonesDetalle() {
+            document.querySelectorAll('.btn-detalle').forEach(function(btn) {
                 btn.innerHTML = '👁️ Ver Detalle';
             });
         }
         
         // Resetear botones cuando la página se muestre (incluso al regresar)
         window.addEventListener('pageshow', function(event) {
-            resetearBotones();
+            resetearBotonesDetalle();
         });
         
-        // Mostrar loading en los enlaces
-        document.querySelectorAll('.btn').forEach(function(btn) {
+        // Mostrar loading solo en los botones de detalle
+        document.querySelectorAll('.btn-detalle').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 this.innerHTML = '⏳ Cargando...';
             });
@@ -256,7 +268,7 @@
         
         // Resetear botones al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
-            resetearBotones();
+            resetearBotonesDetalle();
         });
     </script>
 </body>

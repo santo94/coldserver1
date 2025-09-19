@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Etiqueta Pallet</title>
+    <style>
+        body {
+            font-family: helvetica, sans-serif;
+            font-size: 14pt;
+            margin: 0;
+            padding: 2mm;
+            width: 96mm;
+            height: 56mm;
+            line-height: 1.1;
+        }
+        .sku-producto-bloque {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 1mm;
+            line-height: 1.1;
+        }
+        .sku-texto {
+            font-size: 12pt;
+            font-weight: normal;
+            color: #666;
+        }
+        .fecha-central {
+            font-size: 24pt;
+            font-weight: bold;
+            text-align: center;
+            color: #fff;
+            margin: 1mm 0;
+            background-color: #000;
+            line-height: 1.1;
+            padding: 1mm 0;
+        }
+        .pallet-cajas {
+            font-size: 14pt;
+            text-align: center;
+            margin-bottom: 0.5mm;
+            line-height: 1.1;
+        }
+        .kilos-um {
+            font-size: 14pt;
+            text-align: center;
+            margin-top: 0.5mm;
+            margin-bottom: 1mm;
+            line-height: 1.1;
+        }
+        .sscc-cliente {
+            font-size: 12pt;
+            margin-top: 0.5mm;
+            line-height: 1.1;
+        }
+        .cliente-valor {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .contador {
+            font-size: 10pt;
+            color: #666;
+            margin-top: 1mm;
+        }
+    </style>
+</head>
+<body>
+    <!-- Layout horizontal: 55% contenido - 45% QR -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="height: 54mm;">
+        <tr>
+            <td width="55%" style="border: none; vertical-align: top; padding: 1mm;">
+                
+                <!-- SKU y nombre del producto en un solo bloque -->
+                <div class="sku-producto-bloque">
+                    <span class="sku-texto">SKU: {{ $etiqueta['sku'] }}</span><br>{{ Str::limit($etiqueta['producto'], 30) }}
+                </div>
+                
+                <!-- Pallet y Cajas en el centro (arriba de la fecha) -->
+                <div class="pallet-cajas">
+                    <strong>{{ $etiqueta['contador_texto'] }}</strong>
+                </div>
+                
+                <!-- Fecha en grande en el centro -->
+                <div class="fecha-central">{{ $etiqueta['fecha'] }}</div>
+                
+                <!-- Kilos y UM debajo de la fecha -->
+                <div class="kilos-um">
+                    <strong>{{ number_format($etiqueta['peso'] ?? 0, 2) }}</strong> | <span style="font-size: 12pt;">UM: {{ $etiqueta['um_abreviatura'] ?? 'CAJAS' }}</span>
+                </div>
+                
+                <!-- SSCC abajo -->
+                <div class="sscc-cliente">
+                    <strong>SSCC:</strong> {{ Str::limit($etiqueta['sscc'], 18) }}
+                </div>
+                
+                <!-- Cliente en mayúsculas y negrita -->
+                <div class="sscc-cliente">
+                    <strong>CLIENTE:</strong> <span class="cliente-valor">{{ $etiqueta['cliente'] }}</span>
+                </div>
+            </td>
+            <td width="45%" style="border: none; text-align: center; vertical-align: middle; padding: 1mm;">
+                <img src="{{ $etiqueta['qr_image'] }}" alt="QR Code" style="width: 75mm; height: 75mm; display: block; margin: 0 auto;"><br>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
