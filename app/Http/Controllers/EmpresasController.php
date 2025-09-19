@@ -139,6 +139,7 @@ class EmpresasController extends Controller
             $fecha2=Carbon::parse($request->fin)->format('Y-m-d H:i:s');
            
             $ordenesEntrada=Orden::where([["OrdenesTipos",2],["OidCliente", $request->cliente]])->whereBetween('fecha', [$fecha1 ,$fecha2])->get();
+
         $ordenempresas=$ordenesEntrada;
         
         $clientes = $ordenesEntrada->pluck('proveedor.Nombre')->unique()->sort();
@@ -536,9 +537,9 @@ public function almacenamiento(Request $request){
     public function crear(){
 
         $user= new User;
-        $user->name="Coldtainer adm";
-        $user->email="coldtainer@gmail.com";
-        $user->password=Hash::make('Coltainerv1');
+        $user->name="Registro";
+        $user->email="registro@gmail.com";
+        $user->password=Hash::make('Registrov1');
         $user->save();
     }
 
