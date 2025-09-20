@@ -72,46 +72,4 @@ class ProductosPresentaciones extends Model
     {
         return $this->belongsTo(ABC::class, 'abc', 'OID');
     }
-    
-    /**
-     * Relación uno a muchos con OrdenProductoPresentacion.
-     * Una presentación de producto puede estar en muchas órdenes.
-     */
-
-     public function orden()
-    {
-        return $this->belongsTo(Orden::class, 'Ordenes', 'OID');
-    }
-
-    public function ProdPre()
-    {
-        return $this->belongsTo(ProductosPresentaciones::class,'productosPresentaciones','OID');
-    }
-    public function ordenesProductosPresentaciones()
-    {
-        return $this->hasMany(OrdenProductoPresentacion::class, 'productosPresentaciones', 'OID');
-    }
-
-     public function movimientos()
-    {
-        return $this->hasMany(Movimientos::class, 'ordenesProductosPresentaciones', 'OID');
-    }
-
-    public function MovimientoEntrada()
-    {
-        return $this->hasOne(Movimientos::class, 'ordenesProductosPresentaciones','OID');
-    }
-
-    public function unidmed()
-    {
-        return $this->hasOne(UnidadesMedidas::class,'OID','UnidadesMedidas');
-    }
-
-    public function contenedor()
-    {
-        return $this->hasOne(Contenedores::class,'SSCC','SSCC');
-    }
-
-
-
 }

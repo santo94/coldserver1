@@ -24,20 +24,7 @@ class OrdenProductoPresentacion extends Model
     /**
      * Los atributos que se pueden asignar masivamente (solo lectura).
      */
-    protected $fillable = [
-        'OID',
-        'Cantidad',
-        'Notas',
-        'productosPresentaciones',
-        'Ordenes',
-        'Estatus',
-        'UnidadesMedidas',
-        'Consolidados',
-        'empresasPPresentacion',
-        'SSCC',
-        'OptimisticLockField',
-        'GCRecord',
-    ];
+    protected $fillable = [];
     
     /**
      * Los atributos que deben ser protegidos de asignación masiva.
@@ -72,24 +59,13 @@ class OrdenProductoPresentacion extends Model
         return $this->hasOne(Movimientos::class, 'ordenesProductosPresentaciones','OID');
     }
 
-    /**
-     * Relación muchos a uno con UnidadesMedidas.
-     * Una orden producto presentación pertenece a una unidad de medida (kilos, cajas, piezas, etc.)
-     */
-    public function unidadMedida()
-    {
-        return $this->belongsTo(UnidadesMedidas::class, 'UnidadesMedidas', 'OID');
-    }
-     public function unidmed()
+    public function unidmed()
     {
         return $this->hasOne(UnidadesMedidas::class,'OID','UnidadesMedidas');
     }
-
-
 
     public function contenedor()
     {
         return $this->hasOne(Contenedores::class,'SSCC','SSCC');
     }
-
 }

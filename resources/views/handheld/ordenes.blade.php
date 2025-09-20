@@ -169,11 +169,18 @@
 </head>
 <body>
     <div class="header">
-        <h1>🔄 Órdenes Activas</h1>
+
+        <h1>🔄 Órdenes Activas</h1> 
         <div class="stats">
             Total: {{ $ordenes->total() ?? 0 }} órdenes activas
         </div>
     </div>
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit" class="btn btn-danger">
+            Cerrar sesión
+        </button>
+    </form>
 
     <!-- Navegación -->
     <div class="container" style="padding-top: 15px;">
