@@ -485,7 +485,7 @@ class OrdenController extends Controller
             'um_nombre' => $datos['um'] ?? 'CAJAS',
             'um_abreviatura' => $datos['um_abreviatura'] ?? 'CAJAS',
             'sscc' => $datos['sscc'],
-            'cliente' => Str::limit($datos['cliente'], 50),
+            'cliente' => Str::limit($datos['cliente'], 85),
             'qr_data' => $datos['qr_data'],
             'qr_image' => $this->generarCodigoQR($datos['qr_data']),
             'tipo' => $datos['tipo'],
@@ -518,8 +518,8 @@ class OrdenController extends Controller
         // En v6.x, QrCode es readonly y se configura en el constructor
         $qrCode = new \Endroid\QrCode\QrCode(
             data: $data,
-            size: 120,
-            margin: 5
+            size: 240,
+            margin: 1
         );
         
         $writer = new \Endroid\QrCode\Writer\PngWriter();

@@ -9,8 +9,6 @@
             font-size: 14pt;
             margin: 0;
             padding: 2mm;
-            width: 96mm;
-            height: 56mm;
             line-height: 1.1;
         }
         .sku-producto-bloque {
@@ -48,12 +46,10 @@
             line-height: 1.1;
         }
         .sscc-cliente {
-            font-size: 12pt;
-            margin-top: 0.5mm;
-            line-height: 1.1;
+            font-size: 13pt;
+            
         }
         .cliente-valor {
-            font-weight: bold;
             text-transform: uppercase;
         }
         .contador {
@@ -65,9 +61,9 @@
 </head>
 <body>
     <!-- Layout horizontal: 55% contenido - 45% QR -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="height: 54mm;">
+    <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
-            <td width="55%" style="border: none; vertical-align: top; padding: 1mm;">
+            <td width="46%" style="border: none; vertical-align: top; padding: 1mm;">
                 
                 <!-- SKU y nombre del producto en un solo bloque -->
                 <div class="sku-producto-bloque">
@@ -91,16 +87,16 @@
                 <div class="sscc-cliente">
                     <strong>SSCC:</strong> {{ Str::limit($etiqueta['sscc'], 18) }}
                 </div>
-                
-                <!-- Cliente en mayúsculas y negrita -->
-                <div class="sscc-cliente">
-                    <strong>CLIENTE:</strong> <span class="cliente-valor">{{ $etiqueta['cliente'] }}</span>
+            </td>
+            <td width="54%" style="border: none; height: 100%;">
+                <div style="display: flex; justify-content: center; align-items: center; height: 100%; width: 100%;">
+                    <img src="{{ $etiqueta['qr_image'] }}" alt="QR Code" style="width: 90mm; height: 90mm; display: block;">
                 </div>
             </td>
-            <td width="45%" style="border: none; text-align: center; vertical-align: middle; padding: 1mm;">
-                <img src="{{ $etiqueta['qr_image'] }}" alt="QR Code" style="width: 75mm; height: 75mm; display: block; margin: 0 auto;"><br>
-            </td>
-        </tr>
+        </tr>    
     </table>
+    <div class="sscc-cliente" style="margin-top: 0px;">
+        <strong>CLIENTE:</strong> <span class="cliente-valor">{{ $etiqueta['cliente'] }}</span>
+    </div>
 </body>
 </html>
