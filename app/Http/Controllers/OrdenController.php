@@ -178,7 +178,7 @@ class OrdenController extends Controller
             $contenedor = Contenedores::create([
                 'Consecutivo' => $nuevoConsecutivo,
                 'Tipo' => 0,
-                'Estatus' => 0,
+                'Estatus' => 1,
                 'Oid_Padre' => null,
                 'LotesContenedores' => $lote->OID,
                 'FechaProduccion' => $fechaProduccion,
@@ -216,7 +216,7 @@ class OrdenController extends Controller
                 'Ubicaciones' => 3,
                 'Lotes' => $lote->OID,
                 'ContenedorOid' => $contenedor->OID,
-                'Estatus' => 1
+                'Estatus' => 0
             ]);
 
             // 5. CREAR REGISTRO EN EMPRESASSSCC_EMPRESASSSCC
