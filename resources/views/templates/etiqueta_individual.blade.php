@@ -69,7 +69,10 @@
                 <div class="sku-producto-bloque">
                     <span class="sku-texto">SKU: {{ $etiqueta['sku'] }}</span><br>{{ Str::limit($etiqueta['producto'], 30) }}
                 </div>
-                
+
+                <div>
+                    <span style="font-size: 12px">{{ Str::limit($etiqueta['descripcion'], 70) }}</span>
+                </div>
                 <!-- Pallet y Cajas en el centro (arriba de la fecha) -->
                 <div class="pallet-cajas">
                     <strong>{{ $etiqueta['contador_texto'] }}</strong>

@@ -445,6 +445,7 @@ class OrdenController extends Controller
             $etiquetas[] = $this->crearDatosEtiqueta([
                 'sku' => $producto->ProdPre->Codigo ?? 'N/A',
                 'producto' => $producto->ProdPre->Nombre ?? 'Producto sin nombre',
+                'descripcion' => $contenedor->Descripcion ?? '',
                 'contador' => $contador,
                 'total' => $totalEtiquetas,
                 'fecha' => \Carbon\Carbon::parse($movimiento->FechaCreacion)->format('d/m/Y'),
@@ -478,6 +479,7 @@ class OrdenController extends Controller
         return [
             'sku' => $datos['sku'],
             'producto' => $datos['producto'],
+            'descripcion' => $datos['descripcion'],
             'contador_texto' => $datos['contador'] . ' de ' . $datos['total'],
             'fecha' => $datos['fecha'],
             'cantidad_texto' => $datos['cantidad'] . ' CAJAS' ,
