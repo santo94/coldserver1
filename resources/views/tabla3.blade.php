@@ -97,7 +97,7 @@
                                     <td>{{$prodpre->MovimientoEntrada->contenedor->SSCC}}</td>
                                     @php $fecha = date('Y-m-d'); @endphp
                                     <td data-order="{{$fecha}}">{{date("d/m/Y")}}</td>
-                                    <td>{{ $prodpre->MovimientoEntrada->contenedor->sscc_ep->empresasc->Nombre }}</td>
+                                    <td>{{ $prodpre->MovimientoEntrada->contenedor->sscc_ep->empresa->Nombre ?? '' }}</td>
                                     <td>
                                         @php
                                         $fechaEvaluar = new DateTime($fecha);
